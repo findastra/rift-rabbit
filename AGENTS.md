@@ -8,3 +8,4 @@ Rules for any assistant working here:
 - Work left for someone else is a card in a `handoffs/` folder. Registering this pet in the Cage is card 008 in `findastra/astras-pet-apps`. Do not edit the Cage from this repo.
 - Do not add keys, `.env` files or personal data. Public credit is Astra.
 - Record the model and date of any change in `pet.json` `built_with`.
+Handoff and suggested hub registry entry written by Claude Opus 5.5 (`claude-opus-5-5`), 2026-10-09: see `docs/handoff-claude-20261009.md`.

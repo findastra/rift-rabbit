@@ -12,6 +12,10 @@ Hatching: this is a placeholder. The repo holds the folder, the registry file an
 
 Double-click `index.html`. It needs no install and no build step.
 
+## Next steps
+
+See [docs/handoff-claude-20261009.md](docs/handoff-claude-20261009.md).
+
 ## Limits
 
 - No VR software or performance tracking yet.
