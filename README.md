@@ -1,0 +1,19 @@
+# Rift Rabbit
+
+*A pet app by Astra.*
+
+A white rabbit that preps and tracks VR software and performance. Part of [Astra's Pet Apps](https://github.com/findastra/astras-pet-apps).
+
+## Status
+
+Hatching: this is a placeholder. The repo holds the folder, the registry file and a blank page. Nothing tracks or preps yet, and the rabbit has no finished art.
+
+## How to run it
+
+Double-click `index.html`. It needs no install and no build step.
+
+## Limits
+
+- No VR software or performance tracking yet.
+- No pixel art yet. `sprite.json` only lists the nine moods.
+- Not on GitHub yet (`published: false` in the hub registry until Astra approves it).
