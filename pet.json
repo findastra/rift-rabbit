@@ -7,6 +7,11 @@
   "runs_on": "Windows desktop (placeholder; not decided yet).",
   "entry": "index.html",
   "status": "hatching",
-  "hub": { "topic": "pet-app", "home": "README.md" },
-  "built_with": "Claude Haiku 5.5 (claude-haiku-5-5), 2026-10-09"
+  "cage": {
+    "topic": "pet-app",
+    "home": "README.md",
+    "repository": "https://github.com/findastra/astras-pet-apps"
+  },
+  "built_with": "Claude Haiku 5.5 (claude-haiku-5-5), 2026-10-09; brought up to the pet file rules with Claude Opus 5.5 (claude-opus-5-5), 2026-10-09",
+  "updated": "2026-10-09"
 }

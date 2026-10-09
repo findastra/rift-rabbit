@@ -16,4 +16,4 @@ Double-click `index.html`. It needs no install and no build step.
 
 - No VR software or performance tracking yet.
 - No pixel art yet. `sprite.json` only lists the nine moods.
-- Not on GitHub yet (`published: false` in the hub registry until Astra approves it).
+- Not in the Cage yet. Registering it is [card 008](https://github.com/findastra/astras-pet-apps/blob/main/handoffs/008-farmer-register-new-placeholders.md) for the Friendly Farmer.

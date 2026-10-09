@@ -1,12 +1,10 @@
-# Rules for assistants working on Rift Rabbit (rift-rabbit)
+# AGENTS.md: Rift Rabbit
 
-*A pet app by Astra.* Public credit is always **Astra**, never a legal name. Keep work information (including any employer's name) out of this repo.
+Rift Rabbit is a pet app by Astra (repo `findastra/rift-rabbit`). It is a **hatching** placeholder.
 
-Built with Claude Haiku 5.5 (`claude-haiku-5-5`), 2026-10-09 (placeholder). Record your model name and version here when you change something substantial.
+Rules for any assistant working here:
 
-## Rules
-- This repo follows the pet file rules in `astras-pet-apps` (PET-FILES.md): `pet.json`, a pixel twin in the shared style, a LICENSE, and a README that says what is not done.
-- Every drawing is a draft until Astra approves it. Say so.
-- No keys, `.env` files or personal data. Node's built-in modules only; `index.html` must work by double-click.
-- Fetched or user text goes into the DOM with `textContent`, never `innerHTML`.
-- Repo names: lowercase words joined by hyphens. The README title is the same words in Title Case.
+- Follow the pet file rules (https://github.com/findastra/astras-pet-apps/blob/main/PET-FILES.md) and the pet words (https://github.com/findastra/astras-pet-apps/blob/main/PET-WORDS.md). `pet.json` must stay valid, `sprite` and `entry` must be real files, and `status` is hatching, growing or grown.
+- Work left for someone else is a card in a `handoffs/` folder. Registering this pet in the Cage is card 008 in `findastra/astras-pet-apps`. Do not edit the Cage from this repo.
+- Do not add keys, `.env` files or personal data. Public credit is Astra.
+- Record the model and date of any change in `pet.json` `built_with`.
