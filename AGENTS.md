@@ -9,3 +9,5 @@ Rules for any assistant working here:
 - Do not add keys, `.env` files or personal data. Public credit is Astra.
 - Record the model and date of any change in `pet.json` `built_with`.
 Handoff and suggested hub registry entry written by Claude Opus 5.5 (`claude-opus-5-5`), 2026-10-09: see `docs/handoff-claude-20261009.md`.
+
+Desktop appearance revision by OpenAI Codex (GPT-6), 2026-10-11. See desktop-pet-20261011.json; runtime behavior is in astras-pet-apps.
