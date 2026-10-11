@@ -4,19 +4,20 @@
   "assistant": "OpenAI Codex (GPT-6)",
   "date": "2026-10-11",
   "status": "draft",
-  "desktop_scale": 1,
+  "desktop_scale": 0.9,
   "sparkles": false,
   "renderer": "astras-pet-apps/scripts/desktop-pets-20261011.cs",
   "art_files": [
-    "desktop-art/rift-rabbit/idle-20261011.png",
+    "desktop-art/rift-rabbit/alarmed-20261011.png",
     "desktop-art/rift-rabbit/blink-20261011.png",
-    "desktop-art/rift-rabbit/happy-20261011.png",
     "desktop-art/rift-rabbit/curious-20261011.png",
-    "desktop-art/rift-rabbit/worried-20261011.png",
+    "desktop-art/rift-rabbit/happy-20261011.png",
+    "desktop-art/rift-rabbit/idle-20261011.png",
     "desktop-art/rift-rabbit/sad-20261011.png",
     "desktop-art/rift-rabbit/sick-20261011.png",
-    "desktop-art/rift-rabbit/alarmed-20261011.png",
-    "desktop-art/rift-rabbit/sleep-20261011.png"
+    "desktop-art/rift-rabbit/sleep-20261011.png",
+    "desktop-art/rift-rabbit/worried-20261011.png"
   ],
-  "notes": "White fur with monocle; no purple or headset."
+  "notes": "Smaller white rabbit with monocle, seated visible soles; no purple or headset.",
+  "source_sheet": "desktop-art/rift-rabbit/sheet-20261011.png"
 }
