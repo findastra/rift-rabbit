@@ -1,0 +1,24 @@
+{
+  "pet": "Rift Rabbit",
+  "status": "draft",
+  "approved": false,
+  "built_with": "OpenAI Codex (GPT-6), built-in imagegen, 2026-10-11",
+  "size": [
+    256,
+    256
+  ],
+  "sheet": "sheet-20261011.png",
+  "icon": "idle-20261011.png",
+  "frames": {
+    "idle": "idle-20261011.png",
+    "blink": "blink-20261011.png",
+    "happy": "happy-20261011.png",
+    "curious": "curious-20261011.png",
+    "worried": "worried-20261011.png",
+    "sad": "sad-20261011.png",
+    "sick": "sick-20261011.png",
+    "alarmed": "alarmed-20261011.png",
+    "sleep": "sleep-20261011.png"
+  },
+  "limits": "Art draft only. Not connected to the app or hub registry. Facial moods only; shared mood stickers can be applied at registration."
+}
