@@ -10,8 +10,26 @@
   "cage": {
     "topic": "pet-app",
     "home": "README.md",
-    "repository": "https://github.com/findastra/astras-pet-apps"
+    "repository": "https://github.com/findastra/astras-pet-apps",
+    "submit": {
+      "date": "2026-10-15",
+      "audit": {
+        "cadence": "manual",
+        "subject": "Pet Program source, shared controls and declared tool behavior",
+        "needs": "Local source review; real runtime and desktop actions require separate verification"
+      }
+    }
   },
   "built_with": "Claude Haiku 5.5 (claude-haiku-5-5), 2026-10-09; brought up to the pet file rules with Claude Opus 5.5 (claude-opus-5-5), 2026-10-09; original art draft with OpenAI Codex (GPT-6), built-in imagegen, 2026-10-11",
-  "updated": "2026-10-11"
+  "updated": "2026-10-15",
+  "audit": {
+    "cadence": "manual",
+    "subject": "Pet Program source, shared controls and declared tool behavior",
+    "needs": "Local source review; real runtime and desktop actions require separate verification"
+  },
+  "framework": "PET-PROGRAM-FRAMEWORK.md (shared shell 2026-10-15; partial implementation)",
+  "framework_limitations": [
+    "Shared presentation does not establish a connected L3 harness",
+    "Native click bindings and per-tool runtime acceptance require verification"
+  ]
 }

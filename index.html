@@ -15,5 +15,388 @@
   <h1>Rift Rabbit</h1>
   <p>Placeholder. The white rabbit is not drawn yet.</p>
 </main>
-</body>
+<div data-astra-shared-footer><astra-footer date="2026-10-15"></astra-footer></div><script>/* Shared footer-template v1.0. Made by Astra; OpenAI Codex GPT-6, 2026-10-14. */
+(() => {
+  if (customElements.get('astra-footer')) return;
+  const base = 'https://findastra.github.io/astras-pet-os/';
+  const github = '<path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.77-.24.77-.54v-2.09c-3.14.68-3.8-1.33-3.8-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.68.08-.68 1.13.08 1.73 1.16 1.73 1.16 1 1.73 2.63 1.23 3.27.94.1-.73.4-1.23.71-1.51-2.51-.29-5.15-1.26-5.15-5.58 0-1.23.44-2.24 1.16-3.03-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.08 1.16A10.7 10.7 0 0 1 12 6.12c.95 0 1.9.13 2.8.38 2.14-1.46 3.08-1.16 3.08-1.16.61 1.55.23 2.69.11 2.98.72.79 1.16 1.8 1.16 3.03 0 4.33-2.65 5.29-5.17 5.57.41.35.77 1.03.77 2.08v3.09c0 .3.2.65.78.54A11.2 11.2 0 0 0 12 .8Z"/>';
+  const tiktok = '<path d="M16 2c.4 2.7 1.9 4.3 4.5 4.5v3.4a9 9 0 0 1-4.5-1.4v7.4a6.3 6.3 0 1 1-5.5-6.3v3.5a2.9 2.9 0 1 0 2 2.8V2Z"/>';
+  const safe = (value, fallback) => { try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password ? u.href : fallback; } catch { return fallback; } };
+  class AstraFooter extends HTMLElement {
+    static get observedAttributes() { return ['date','github','pole','vr','home','farmer']; }
+    constructor() { super(); this.attachShadow({mode:'open'}); }
+    connectedCallback() { this.render(); }
+    attributeChangedCallback() { if(this.isConnected) this.render(); }
+    render() {
+      const root = this.shadowRoot;
+      root.innerHTML = `<style>
+        :host{display:block;--footer-border:#d994c6;--footer-background:#211c2b;--footer-radius:22px;--footer-icon:32px}
+        *{box-sizing:border-box}
+        footer{border-top:1px solid #d5bad0;border-bottom:1px solid #d5bad0;background:#ffffff80;color:var(--footer-color,inherit);padding:22px 12px;overflow:visible;font:12px/1.4 system-ui,sans-serif}
+        .line{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;flex-wrap:wrap;gap:22px 30px;white-space:normal}
+        .group{display:flex;align-items:center;justify-content:center;gap:10px;flex:0 1 auto;flex-wrap:wrap;max-width:100%;padding:5px 0}.group:nth-of-type(even){margin-top:10px}
+        .group::before{content:"✦";color:#d994c6;font-size:12px;line-height:1;margin:0 .5cm}
+        .title,time,.more,.home-group{display:inline-flex;align-items:center;gap:7px}
+        a{display:inline-grid;place-items:center;color:inherit;width:27px;height:32px;border-radius:8px;text-decoration:none}a:hover{background:#ffffff55}a:focus-visible{outline:3px solid #d994c6;outline-offset:3px}svg{width:22px;height:22px;fill:currentColor}
+        .home img{width:28px;height:28px;object-fit:contain;image-rendering:pixelated}
+        slot{display:contents}::slotted([slot=status]){flex:1 0 100%;min-width:0;max-width:100%}
+      </style><footer aria-label="Made by Astra — signature and links"><div class="line"><slot name="status"></slot><div class="group"><span class="title">Made by Astra</span><time></time></div><div class="group"><span class="title">Find Out More</span><span class="more"></span></div><div class="group"><span class="title">Take Me Home!</span><span class="home-group"></span></div></div></footer>`;
+      const date = this.getAttribute('date') || '2026-10-14';
+      const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date)) && new Date(date).toISOString().slice(0,10) === date;
+      const time = root.querySelector('time'); time.textContent = validDate ? date : '2026-10-14'; time.dateTime = time.textContent;
+      const link = (label, href, cls='') => { const a=document.createElement('a'); a.href=href;a.title=label;a.setAttribute('aria-label',label);a.className=cls;return a; };
+      for(const [key,label,url,art] of [['github','GitHub — Astra','https://github.com/findastra',github],['pole','Pole TikTok — @astra_on_fire','https://www.tiktok.com/@astra_on_fire',tiktok],['vr','VR TikTok — @findastra','https://www.tiktok.com/@findastra',tiktok]]){
+        const a=link(label,safe(this.getAttribute(key),url),key);a.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+art+'</svg>';root.querySelector('.more').append(a);
+      }
+      const home=link('The Farm — Friendly Farmer',safe(this.getAttribute('home'),base+'apps/astras-pet-apps-20261008.html'),'home');
+      const art=safe(this.getAttribute('farmer'),base+'art/icons/astras-pet-os-20261012.png');
+      const img=document.createElement('img');img.src=art;img.alt='';home.append(img);root.querySelector('.home-group').append(home);
+    }
+  }
+
+  customElements.define('astra-footer', AstraFooter);
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</script><style data-astra-phone-baseline>:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone,:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch{--neon:#d9e25a;--neon-ink:#0a0b05;--lcd:#c3d39b;--lcd-ink:#1f2b0e;--lcd-mid:#7d8f55;--f-pixel:"Silkscreen","IBM Plex Mono",ui-monospace,monospace;--f-lcd:"VT323","IBM Plex Mono",ui-monospace,monospace}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:40;width:76px;height:92px;border-radius:24px 24px 28px 28px;background:var(--neon);border:3px solid var(--neon-ink);box-shadow:0 0 0 3px var(--neon),0 0 10px color-mix(in srgb,var(--neon) 18%,transparent);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch::before{content:"";position:absolute;top:-14px;left:14px;width:8px;height:12px;background:var(--neon);border:3px solid var(--neon-ink);border-bottom:0;border-radius:5px 5px 0 0}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch canvas{width:52px;height:39px;image-rendering:pixelated;background:var(--lcd);border:3px solid var(--neon-ink);border-radius:9px}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch .lbl{font:700 10px/1 var(--f-pixel);color:var(--neon-ink);letter-spacing:.12em}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch .badge{position:absolute;top:-10px;right:-10px;background:var(--neon-ink);color:var(--neon);font:700 11px/1 var(--f-pixel);border-radius:999px;padding:5px 7px;border:2px solid var(--neon)}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch:hover{transform:translateY(-2px)}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch:focus-visible,:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone button:focus-visible,:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone input:focus-visible{outline:3px solid var(--neon-ink);outline-offset:2px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:41;width:min(400px,calc(100vw - 32px));height:min(680px,calc(100vh - 120px));height:min(680px,calc(100dvh - 120px));background:var(--neon);border:3px solid var(--neon-ink);border-radius:34px 34px 40px 40px;box-shadow:0 0 0 3px var(--neon),0 0 12px color-mix(in srgb,var(--neon) 15%,transparent);display:flex;flex-direction:column;padding:14px 14px 16px;gap:10px;color:var(--neon-ink)}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone::before{content:"";position:absolute;top:-18px;left:34px;width:10px;height:15px;background:var(--neon);border:3px solid var(--neon-ink);border-bottom:0;border-radius:6px 6px 0 0}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-head{display:flex;align-items:center;gap:10px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-head b{font:700 18px/1 var(--f-pixel);letter-spacing:.08em}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-head span{font:400 10px/1.2 var(--f-pixel);letter-spacing:.06em;opacity:.75}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-x{margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--neon-ink);color:var(--neon);border:0;font:700 16px/1 var(--f-pixel);cursor:pointer}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .lcd{background:var(--lcd);border:3px solid var(--neon-ink);border-radius:16px;box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--lcd-ink) 12%,transparent);color:var(--lcd-ink)}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-screen{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;padding:8px 12px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-screen canvas{width:128px;height:96px;image-rendering:pixelated;display:block}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-stats{display:grid;gap:7px;font:700 11px/1 var(--f-pixel);letter-spacing:.06em}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pips{display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pips i{width:9px;height:9px;border:2px solid var(--lcd-ink);display:inline-block}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pips i.on{background:var(--lcd-ink)}
+#st-state{font:400 18px/1 var(--f-lcd);letter-spacing:0}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-log{flex:1;min-height:0;overflow:auto;padding:10px 12px;font:20px/1.12 var(--f-lcd);display:flex;flex-direction:column;gap:8px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pm{white-space:pre-wrap;overflow-wrap:anywhere;max-width:92%}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pm.bot::before{content:"CHIP> ";color:var(--lcd-mid)}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pm.me{align-self:flex-end;background:var(--lcd-ink);color:var(--lcd);padding:4px 9px;border-radius:10px 10px 2px 10px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pm.sys{color:var(--lcd-mid);font-size:17px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-quick{display:flex;gap:6px;flex-wrap:wrap}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-quick button{background:var(--neon-ink);color:var(--neon);border:0;border-radius:999px;padding:7px 10px;font:700 9.5px/1 var(--f-pixel);letter-spacing:.06em;cursor:pointer}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-quick button:hover{background:#2a2d12}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-in{display:flex;gap:8px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-in input{flex:1;min-width:0;background:#eef0cf;color:var(--neon-ink);border:3px solid var(--neon-ink);border-radius:12px;padding:6px 10px;font:20px/1 var(--f-lcd)}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-in button{background:var(--neon-ink);color:var(--neon);border:0;border-radius:12px;padding:0 14px;font:700 11px/1 var(--f-pixel);letter-spacing:.08em;cursor:pointer}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-tabs{display:flex;gap:6px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-tabs button{flex:1;background:transparent;color:var(--neon-ink);border:3px solid var(--neon-ink);border-radius:10px;padding:7px 0;font:700 10px/1 var(--f-pixel);letter-spacing:.08em;cursor:pointer}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-tabs button[aria-pressed="true"]{background:var(--neon-ink);color:var(--neon)}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pet-goals{flex:1;min-height:0;overflow:auto;padding:8px 12px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg-h{font:700 10px/1 var(--f-pixel);letter-spacing:.1em;margin:12px 0 4px;color:var(--lcd-mid)}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;padding:7px 0;border-bottom:2px dotted color-mix(in srgb,var(--lcd-ink) 28%,transparent)}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg:last-child{border-bottom:0}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg .bx{width:14px;height:14px;border:2px solid var(--lcd-ink);margin-top:3px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg.done .bx{background:var(--lcd-ink)}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg .t{font:20px/1.05 var(--f-lcd);overflow-wrap:anywhere}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg.done .t{text-decoration:line-through;opacity:.6}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg .pgm{font:16px/1.1 var(--f-lcd);color:var(--lcd-mid);overflow-wrap:anywhere}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg-btns button{background:var(--lcd-ink);color:var(--lcd);border:0;border-radius:6px;padding:5px 8px;font:700 9px/1 var(--f-pixel);letter-spacing:.06em;cursor:pointer}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .pg-btns button[disabled]{opacity:.5}
+
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch{inset:auto 18px 18px auto!important;min-width:0;box-sizing:border-box!important;transform:none!important;perspective:none!important}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch img{width:52px!important;height:39px!important;object-fit:contain;image-rendering:pixelated;background:var(--lcd);border:3px solid var(--neon-ink);border-radius:9px;box-sizing:content-box}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone{inset:auto 18px 18px auto!important;margin:0!important;max-height:calc(100dvh - 60px);box-sizing:border-box!important;overflow:visible!important;text-align:left}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone:not([open])[role=dialog],dialog:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone:not([open]),:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone[hidden]{display:none!important}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone h2{font:700 18px/1.15 var(--f-pixel);color:var(--neon-ink);margin:0}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone p{font:18px/1.2 var(--f-lcd);color:var(--lcd-ink)}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone .phone-display{flex:1;overflow:auto;padding:12px;min-height:0}
+:is(#tower-chat,#pet,#cyber-deck,#astra-phone-chat).astra-phone::backdrop{background:#10150533}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch .badge:empty{display:none}
+#coin-pause{display:none!important}
+:is(#pet-open,#pet-chat,#tower-chat-launcher,button).astra-phone-launch[hidden]{display:none!important}
+.astra-common{background:linear-gradient(180deg,transparent,#f4f8ff 70px);color:#49394f;margin-top:40px;padding:36px 20px 22px;border-radius:24px;display:grid;gap:24px}
+.astra-common>section{max-width:900px;width:100%;margin:auto;text-align:center}
+.astra-common h2{font:600 12px/1.4 system-ui;letter-spacing:.14em;text-transform:uppercase;color:#735773}
+.astra-common button,.astra-common summary{background:#efc8e3;border:1px solid #bb8db0;border-radius:22px;color:#57324e;padding:10px 18px;margin:6px;cursor:pointer;font:14px system-ui}
+.astra-common p{font:13px/1.6 system-ui}.astra-common textarea{box-sizing:border-box;width:100%;min-height:70px;background:#fff;color:#382a3d;border:1px solid #c9b8ce;border-radius:12px;padding:12px}
+.astra-tutorials{border:1px solid #c7a5c4;border-radius:20px;padding:18px;box-sizing:border-box}
+</style><script data-astra-phone-baseline>/* Owner's original Chip phone baseline, 2026-10-15. No model connection is implied. */
+(() => {
+  const run = () => {
+    if(document.querySelector('[data-astra-phone-ready]')) return;
+    const make=(tag,text,parent,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;if(parent)parent.append(e);return e;};
+    let launch=document.querySelector('#tower-chat-launcher,#pet-open,#pet-chat');
+    let panel=launch ? document.getElementById(launch.id==='pet-open'?'pet':launch.id==='pet-chat'?'cyber-deck':'tower-chat') : null;
+    const original=launch?.querySelector('canvas,img') || document.querySelector('body>header img,header img')?.cloneNode(true);
+    const name=launch?.getAttribute('aria-label')?.replace(/^Open /,'').replace(/ chat$/i,'') || document.querySelector('h1')?.textContent || 'Pet';
+    if(!launch || !panel){
+      launch=make('button',null,document.body);launch.type='button';launch.setAttribute('aria-label','Open '+name+' chat');
+      panel=make('dialog',null,document.body);panel.id='astra-phone-chat';
+      panel.setAttribute('aria-label',name+' Chat');
+      const head=make('div',null,panel,'pet-head');make('h2',name+' Chat',head);
+      const close=make('button','×',head,'pet-x');close.type='button';close.setAttribute('aria-label','Close chat');close.onclick=()=>panel.close();
+      const display=make('div',null,panel,'lcd phone-display');make('p','Seat: empty. No AI account is connected to this page.',display);
+      make('p','Chat becomes available when a compatible host is connected.',display);
+      const form=make('div',null,panel,'pet-in');const input=make('input',null,form);input.placeholder='Chat is disconnected';input.disabled=true;input.setAttribute('aria-label','Message');const send=make('button','SEND',form);send.disabled=true;
+      launch.onclick=()=>panel.showModal();
+    }
+    launch.className='astra-phone-launch';launch.dataset.astraPhoneReady='true';launch.setAttribute('aria-controls',panel.id);
+    // Keep live canvases and their IDs so existing drawing and host handlers still work.
+    const canvases=[...launch.querySelectorAll('canvas')];
+    const badge=launch.querySelector('.badge');
+    launch.replaceChildren();
+    if(original){launch.append(original);if(original.tagName==='CANVAS')original.hidden=false;}
+    else make('span','▣',launch);
+    for(const canvas of canvases)if(canvas!==original){canvas.hidden=true;launch.append(canvas);}
+    make('span','CHAT',launch,'lbl');if(badge)launch.append(badge);
+    panel.classList.add('astra-phone');
+    if(panel.id==='tower-chat'){
+      panel.querySelector('h2').textContent='Discord Damsel Chat';
+      const head=make('div',null,panel,'pet-head');head.append(panel.querySelector('h2'),panel.querySelector('.tower-close'));panel.prepend(head);
+      panel.querySelector('.tower-close').className='pet-x';
+      const display=make('div',null,panel,'lcd phone-display');for(const p of [...panel.querySelectorAll(':scope > p')])display.append(p);
+      const form=make('div',null,panel,'pet-in');const input=make('input',null,form);input.disabled=true;input.placeholder='Chat is disconnected';input.setAttribute('aria-label','Message');make('button','SEND',form).disabled=true;
+    }
+    for(const edge of document.querySelectorAll('.coin-edge,.tower-edge'))edge.remove();
+    for(const controls of document.querySelectorAll('.tool-controls')){
+      const details=controls.closest('details'),summary=details?.querySelector(':scope>summary');if(!summary)continue;
+      details.classList.add('tower-tool');controls.className='tower-controls tower-light-controls';summary.append(controls);
+      for(const input of controls.querySelectorAll('input[type=checkbox]')){
+        const label=input.closest('label');if(!label)continue;label.hidden=true;
+        const maintenance=/Sick|Not working/i.test(input.getAttribute('aria-label')||'');
+        const light=make('button',null,controls,'tower-light');light.type='button';light.dataset.control=maintenance?'sick':'enabled';
+        const update=()=>{light.dataset.active=String(input.checked);const state=maintenance?(input.checked?'Needs maintenance':'Working'):(input.checked?'On':'Off');light.title=state+' — click to change';light.setAttribute('aria-label',(input.getAttribute('aria-label')||'Tool')+': '+state);light.setAttribute('aria-pressed',String(input.checked));};
+        update();input.addEventListener('change',update);light.onclick=event=>{event.preventDefault();event.stopPropagation();input.click();update();};
+      }
+    }
+    if(!document.querySelector('.tower-shared')){
+      const common=make('section',null,document.body,'astra-common');common.setAttribute('aria-label','Shared Pet Program controls');
+      const section=(title)=>{const s=make('section',null,common);make('h2',title,s);return s;};
+      const notes=section('Your Notes');const area=make('textarea',null,notes);area.setAttribute('aria-label','Pet Program notes');
+      let identity=location.pathname;try{identity=JSON.parse(document.querySelector('script[data-astra-paper-data]')?.textContent||'{}').repo||identity;}catch{}const noteKey='astra-phone-notes:'+identity;try{let value=localStorage.getItem(noteKey);if(value===null){value=localStorage.getItem('astra-phone-notes:'+location.pathname);if(value!==null)localStorage.setItem(noteKey,value);}area.value=value||'';}catch{}
+      const save=make('button','Save notes',notes);const receipt=make('p','Saved on this browser only.',notes);receipt.setAttribute('role','status');save.onclick=()=>{try{localStorage.setItem(noteKey,area.value);receipt.textContent='Notes saved in this browser.';}catch{receipt.textContent='Browser storage unavailable; copy your notes before closing.';}};
+      const exportNotes=make('button','Export notes',notes);exportNotes.onclick=()=>{const blob=new Blob([JSON.stringify({schema:1,program:identity,notes:area.value},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=make('a');a.href=url;a.download='pet-notes-'+new Intl.DateTimeFormat('en-CA',{timeZone:'America/Denver',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).replaceAll('-','')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+      const restoreLabel=make('label','Import notes',notes),restore=make('input',null,restoreLabel);restore.type='file';restore.accept='.json';restore.onchange=async()=>{const file=restore.files?.[0];if(!file)return;try{if(file.size>5_000_000)throw Error('Export is too large.');const data=JSON.parse(await file.text());if(data.schema!==1||data.program!==identity||typeof data.notes!=='string')throw Error('Choose an export from this Pet Program.');const current=area.value;localStorage.setItem(noteKey+':before-import',current);localStorage.setItem(noteKey,data.notes);area.value=data.notes;receipt.textContent='Notes imported. Previous notes kept for Undo import.';}catch(error){receipt.textContent='Import not applied: '+error.message;}finally{restore.value='';}};
+      const undo=make('button','Undo import',notes);undo.onclick=()=>{try{const old=localStorage.getItem(noteKey+':before-import');if(old===null){receipt.textContent='No import backup exists.';return;}localStorage.setItem(noteKey,old);area.value=old;receipt.textContent='Previous notes restored.';}catch{receipt.textContent='Browser storage is unavailable.';}};
+      const tutorials=section('Your Tutorials');tutorials.classList.add('astra-tutorials');
+      const existingTutorials=document.querySelector('#tutorial-grid');
+      if(existingTutorials){for(const box of [...existingTutorials.children]){const summary=box.querySelector('summary');if(summary&&summary.firstChild?.nodeType===3)summary.firstChild.textContent=box.id.includes('play-with')?'Play with '+name:'Care for '+name;tutorials.append(box);}const note=existingTutorials.previousElementSibling,heading=note?.previousElementSibling;if(heading?.tagName==='H2'&&heading.textContent==='Tutorial tools'){heading.remove();note.remove();}existingTutorials.remove();}
+      else for(const label of ['Play with '+name,'Care for '+name]){const button=make('button',label,tutorials);button.onclick=()=>launch.click();}
+      make('p','Open this pet’s chat. Guided tutorials require a connected host; opening chat does not start a tutorial.',tutorials);
+      const split=make('div',null,common,'astra-shared-split');split.append(tutorials,notes);
+      const training=section('Clicker Training');training.classList.add('astra-clicker-training');
+      const bindings=make('dl',null,training);
+      for(const [gesture,action] of [['One click','Show the most important emotion-linked message.'],['Two clicks','Show or hide this Pet Program window. Background work continues.'],['Three clicks','Run the assigned quick tool. No quick tool is assigned by this page.']]){make('dt',gesture,bindings);make('dd',action,bindings);}
+      make('p','Desktop binding status: not verified by this page. The yellow phone opens browser chat.',training);
+      const about=section('About');const collar=make('details',null,about);make('summary','Pet collar',collar);make('p',name+' · by Astra. The collar holds identity, version and provenance information. Release signatures and installed versions have not been verified by this page.',collar);
+      for(const footer of [...document.querySelectorAll('body > footer,body > [data-astra-shared-footer]')])common.append(footer);
+    }
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
+})();
+</script><!--astra-paper-start--><script type="application/json" data-astra-paper-data>{"repo":"rift-rabbit","pet":"Rift Rabbit","moods":{}}</script><style>/* One portrait paper width; each pet supplies its own stationery hue. */
+html:has(body.astra-stationery){background:#d9dee5;color:var(--paper-ink)}
+body.astra-stationery{box-sizing:border-box!important;width:min(8.5in,calc(100vw - 32px))!important;max-width:8.5in!important;min-height:11in;margin:60px auto 24px!important;padding:40px 32px!important;border:1px solid #b6adbb55;box-shadow:0 12px 44px #33354216;position:relative;isolation:isolate;background-color:hsl(var(--paper-hue) 48% var(--paper-light))!important;background-image:linear-gradient(123deg,transparent 18%,#ffffff28 18.2%,transparent 18.7%,transparent 57%,#6b557508 57.2%,transparent 57.6%),linear-gradient(34deg,transparent 36%,#ffffff38 36.3%,#775b7306 36.6%,transparent 37%),repeating-linear-gradient(97deg,#ffffff09 0 1px,#6b557504 1px 2px,transparent 2px 5px)!important;background-size:100% 950px,100% 730px,7px 9px!important}
+.astra-stationery::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.09;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.04 .65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.6' filter='url(%23p)'/%3E%3C/svg%3E")}
+.astra-stationery .tower-shared,.astra-stationery .astra-common{background:linear-gradient(180deg,transparent,#ffffff65 90px)}
+.astra-mood-gallery{text-align:center;padding:22px 0;border-top:1px solid #aa8fa433;margin:10px auto 12px;width:100%;color:var(--paper-ink)}
+.astra-mood-gallery h2{font:500 13px/1.5 system-ui;letter-spacing:.15em;text-transform:uppercase;margin:0 0 4px}.astra-mood-gallery .mood-caption{font:11px/1.5 system-ui;opacity:.65;margin:0 0 18px}
+.mood-grid{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:7px}.mood-grid figure{margin:0;min-width:0}.mood-grid img{display:block;width:100%;max-width:60px;height:60px;object-fit:contain;margin:auto;image-rendering:pixelated}.mood-grid figcaption{font:10px/1.5 system-ui;margin-top:7px}.mood-pending{display:grid;place-items:center;height:60px;font:9px system-ui;opacity:.55}
+.paper-glitter{position:fixed;z-index:0;pointer-events:none;color:#fffbda;font-size:11px;opacity:0;animation:paper-shimmer 29s ease-in-out infinite;text-shadow:0 0 5px #fffaf0}
+@keyframes paper-shimmer{0%,90%,100%{opacity:0;transform:scale(.3) rotate(0)}93%{opacity:.9;transform:scale(1) rotate(35deg)}96%{opacity:.2;transform:scale(.6) rotate(60deg)}}
+.paper-overview{cursor:zoom-in}
+@media(max-width:600px){body.astra-stationery{padding:30px 18px!important}.mood-grid{grid-template-columns:repeat(3,1fr);gap:16px}.mood-grid img{height:52px}}
+@media(prefers-reduced-motion:reduce){.paper-glitter{animation:none;display:none}}
+html:has(body.astra-stationery){min-width:390px}
+body.astra-stationery{width:max(390px,min(8.5in,calc(100vw - 32px)))!important;min-width:390px}
+.astra-stationery .tower-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;justify-items:center}
+.astra-stationery .tower-tool[open]{grid-column:1/-1}
+.astra-stationery .tower-program-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.astra-stationery .tower-program-link{min-width:0!important;width:100%;box-sizing:border-box}
+.astra-stationery .tower-program-image{width:100%;height:auto;aspect-ratio:1.6;object-fit:cover}
+.astra-common>.astra-tutorials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.astra-tutorials>h2,.astra-tutorials>p{grid-column:1/-1}
+@media(max-width:620px){.astra-stationery .tower-tools,.astra-stationery .tower-program-grid,.astra-common>.astra-tutorials{grid-template-columns:minmax(0,1fr)}.astra-stationery .tower-tool[open]{grid-column:auto}}
+.mood-grid .current-emotion{border-bottom:2px solid #bb8daf}.mood-status{font:11px/1.5 system-ui;opacity:.8;margin:18px auto 0;max-width:520px}
+.emotion-settings{border:0!important;font:12px/1.5 system-ui;margin:10px auto!important;max-width:520px;text-align:left}.emotion-settings summary{text-align:center;padding:6px;cursor:pointer}.emotion-settings label{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:8px 0}.emotion-settings input{width:70px;padding:5px;border:1px solid #b9a1b8;border-radius:8px;background:#fff;color:#49394f}
+/* Emotion key: white speech bubbles with the speaker on the right. */
+.astra-mood-gallery .mood-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;text-align:left}
+.astra-mood-gallery .mood-grid figure{display:flex;flex-direction:row-reverse;align-items:center;gap:12px;border:0;padding:0}
+.astra-mood-gallery .mood-grid img{width:52px;height:62px;flex:0 0 52px;margin:0;object-fit:contain}
+.astra-mood-gallery .mood-grid figcaption{position:relative;flex:1;min-width:0;min-height:80px;box-sizing:border-box;margin:0;padding:13px 14px;background:#fff;border:1px solid #dcd4df;border-radius:9px;box-shadow:0 2px 7px #54445d05;color:#695c6d;font:11px/1.5 system-ui;display:flex;flex-direction:column;gap:5px}
+.astra-mood-gallery .mood-grid figcaption::after{content:'';position:absolute;right:-5px;top:calc(50% - 5px);width:8px;height:8px;background:#fff;border-top:1px solid #dcd4df;border-right:1px solid #dcd4df;transform:rotate(45deg)}
+.mood-grid strong{font-size:10px;letter-spacing:.1em;color:#936b91}.mood-grid [data-emotion=Happy] strong{color:#4f846d}.mood-grid [data-emotion=Curious] strong{color:#6880a5}.mood-grid [data-emotion=Alarmed] strong{color:#ad596b}.mood-grid [data-emotion=Sick] strong{color:#ab8352}.mood-grid [data-emotion=Sad] strong{color:#7283a7}
+.astra-mood-gallery .current-emotion figcaption{border-color:#b88fb1;box-shadow:0 0 0 1px #b88fb126}
+@media(max-width:620px){.astra-mood-gallery .mood-grid{grid-template-columns:minmax(0,1fr)}}
+.astra-mood-gallery .mood-grid figcaption{display:block}.mood-grid figcaption strong{display:inline;margin-right:10px}.mood-grid figcaption>span{display:inline}
+/* Crumpled blue stationery extends behind the sheet, with restrained iridescent color. */
+html:has(body.astra-stationery){background-color:hsl(var(--paper-hue) 55% 89%);background-image:radial-gradient(ellipse at 14% 24%,#f7eaff50,transparent 40%),radial-gradient(ellipse at 82% 68%,#b4e9f24a,transparent 45%),linear-gradient(132deg,transparent 27%,#ffffff55 27.2%,#7a9dbb12 27.8%,transparent 29%),linear-gradient(47deg,transparent 52%,#7a9dbb14 52.2%,#ffffff44 52.8%,transparent 54%);background-size:auto,auto,640px 810px,790px 650px;background-attachment:fixed}
+body.astra-stationery{background-color:hsl(var(--paper-hue) 58% var(--paper-light))!important;background-image:radial-gradient(ellipse at 10% 18%,#f5e6ff44,transparent 40%),radial-gradient(ellipse at 87% 62%,#a6deeb33,transparent 40%),linear-gradient(123deg,transparent 18%,#ffffff80 18.3%,#7f9bbd16 18.8%,transparent 20%,transparent 57%,#7891ab1b 57.2%,#ffffff66 57.7%,transparent 59%),linear-gradient(34deg,transparent 36%,#ffffff66 36.3%,#779bb21b 36.8%,transparent 38%),linear-gradient(168deg,transparent 66%,#789bb215 66.3%,#fff7 66.6%,transparent 68%)!important;background-size:auto,auto,100% 920px,100% 740px,100% 1130px!important}
+.astra-stationery::after{opacity:.12}
+.paper-glitter{color:#fffce8;opacity:.38;font-size:13px;text-shadow:0 0 4px #fff,0 0 9px #e6ceff;animation:paper-shimmer 19s ease-in-out infinite}
+@keyframes paper-shimmer{0%,88%,100%{opacity:.25;transform:scale(.7) rotate(0)}92%{opacity:1;transform:scale(1.25) rotate(35deg)}96%{opacity:.4;transform:scale(.85) rotate(60deg)}}
+@media(prefers-reduced-motion:reduce){.paper-glitter{display:block;animation:none;opacity:.3}}
+.astra-clicker-training{border:1px solid #bda7bc;border-radius:18px;padding:18px;box-sizing:border-box;text-align:left!important;width:100%}
+.astra-clicker-training h2{text-align:center}.astra-clicker-training dl{display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px 16px;margin:10px 0;font:13px/1.5 system-ui}.astra-clicker-training dt{font-weight:700;color:#895c81}.astra-clicker-training dd{margin:0}.astra-clicker-training>p{font-size:11px;opacity:.8}
+.astra-stationery .tower-tools.astra-clicker-training{display:block}
+.astra-mood-gallery .mood-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 12px}
+.astra-mood-gallery .mood-grid figure{gap:9px}.astra-mood-gallery .mood-grid img{width:40px;height:54px;flex-basis:40px}.astra-mood-gallery .mood-grid figcaption{font-size:10px;padding:10px;min-height:112px}
+@media(max-width:760px){.astra-mood-gallery .mood-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.astra-mood-gallery .mood-grid{grid-template-columns:minmax(0,1fr)}.astra-mood-gallery .mood-grid figcaption{min-height:76px}.astra-mood-gallery .mood-grid img{width:52px;flex-basis:52px}}
+.astra-mood-gallery .mood-grid figcaption{border-radius:24px;padding:17px 13px 13px;margin-top:5px}
+.astra-mood-gallery .mood-grid figcaption strong{position:absolute;top:-7px;left:14px;background:#fff;padding:0 6px;border-radius:6px;line-height:14px;margin:0}
+.astra-mood-gallery .mood-grid figcaption::after{width:15px;height:15px;right:-8px;top:calc(50% - 8px);border-radius:0 2px 0 0}
+.astra-mood-gallery .mood-grid figure{gap:13px}
+
+/* Owner standard: all copy sits on a surface; footer wraps within the paper. */
+.astra-stationery .mood-grid figcaption,.astra-stationery .mood-grid figcaption strong{color:var(--paper-ink);font-family:inherit}
+.astra-stationery .mood-grid figcaption{color:#58445d}
+.astra-stationery .mood-grid figcaption strong{color:inherit}
+.astra-stationery .mood-status,.astra-stationery .emotion-settings{box-sizing:border-box;background:#fff;color:#58445d;border:1px solid #dcd4df!important;border-radius:24px;padding:14px 18px;opacity:1}
+.astra-stationery>header,.astra-stationery .astra-clicker-training,.astra-stationery .astra-common>section{background:#ffffffb8;border-radius:24px;padding:18px;box-sizing:border-box}
+.astra-stationery .tower-group>h2{display:table;margin:4px auto 14px;padding:7px 16px;border:1px solid #dcd4df;border-radius:18px;background:#fff}
+.astra-stationery .tower-status{display:flex;flex-wrap:wrap;justify-content:center;white-space:normal;gap:14px 0;max-width:100%;padding:4px 0 16px}
+.astra-stationery .tower-status>*{max-width:100%;overflow-wrap:anywhere}
+.astra-stationery .tower-footer{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}
+.astra-stationery .mood-pending{background:#fff;border-radius:12px;padding:5px;color:#58445d}
+.astra-stationery .tower-footer>p{background:#ffffffc9;border:1px solid #dcd4df;border-radius:18px;padding:10px 16px;margin:12px auto;display:table;max-width:100%;box-sizing:border-box}
+html:has(body.astra-stationery){min-width:0}body.astra-stationery{width:min(8.5in,calc(100% - 32px))!important;min-width:0}@media(max-width:422px){body.astra-stationery{width:100%!important}}
+@media(max-width:600px){.astra-stationery .tower-shared{margin-left:-18px;margin-right:-18px;padding-left:18px;padding-right:18px}}
+
+/* Cloud application launch rows and the shared tutorials/notes base. */
+.astra-stationery .astra-program-row{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:22px;padding:20px!important;border:0!important}
+.astra-stationery .astra-cloud-launch{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;flex:0 0 142px;width:142px;height:142px;padding:18px;background:#f6fbff;color:#4b3674;border:2px solid #b5a4dc;border-radius:36% 29% 34% 27% / 28% 36% 29% 35%;box-shadow:7px 0 0 -3px #f6fbff,-7px 0 0 -3px #f6fbff,0 6px 0 -3px #c8e7fa;cursor:pointer;text-decoration:none;font:600 13px/1.4 system-ui;text-align:center}
+.astra-cloud-launch img{width:48px;height:48px;object-fit:contain}.astra-cloud-launch:hover{border-color:#fa36bf;transform:translateY(-2px)}
+.astra-shared-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;align-items:start}.astra-shared-split>section{min-width:0;background:#f8fbff;border:1px solid #c3b8de;border-radius:24px;padding:16px;box-sizing:border-box}.astra-shared-split .tower-tools{grid-template-columns:minmax(0,1fr)}.astra-shared-split .tower-content{padding:12px}.astra-shared-split textarea{width:100%;box-sizing:border-box}.astra-shared-split .astra-tutorials{display:block}
+@media(max-width:620px){.astra-shared-split{grid-template-columns:minmax(0,1fr)}}
+/* Soft blue wrinkled stationery, purple controls, neon-pink accents. */
+html:has(body.astra-stationery){background:hsl(var(--paper-hue) 48% 83%);background-image:none}
+body.astra-stationery{background-color:hsl(var(--paper-hue) 58% var(--paper-light))!important;background-image:radial-gradient(ellipse at 16% 24%,#fff5,transparent 60%),radial-gradient(ellipse at 85% 72%,#b7cde94d,transparent 65%)!important;background-size:auto!important}
+.astra-stationery::after{opacity:.25;background-size:520px 670px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='670'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .019' numOctaves='3' seed='14' stitchTiles='stitch' result='n'/%3E%3CfeDiffuseLighting in='n' lighting-color='%23e7f4ff' surfaceScale='5' diffuseConstant='1.1'%3E%3CfeDistantLight azimuth='225' elevation='40'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E")}
+.astra-stationery .tower-tool>summary,.astra-stationery .tower-tutorials .tower-tool>summary{background:#d6c9f3;border-color:#a391cf;color:#49376e;box-shadow:0 2px 0 #bca9df}
+.astra-stationery .tower-tool:nth-child(even)>summary{background:#bfe4f8;border-color:#94c2df;color:#3b4d75}
+.astra-stationery .tower-tutorials .tower-tool>summary{background:#d6c9f3}
+.astra-stationery .tower-content{background:#f8faff;border-color:#c0b4da}
+.astra-stationery button:not(.astra-phone-launch):not(.astra-cloud-launch){background:#d6c9f3;border-color:#a391cf;color:#49376e}
+.astra-stationery input[type=checkbox]{accent-color:#895bd0}.astra-stationery a{color:#6e47a4}.astra-stationery :is(button,a,summary):focus-visible{outline-color:#ff39c5}.astra-stationery .paper-glitter{color:#ff9ee8}
+
+.astra-stationery .astra-cloud-launch{border:0;border-radius:0;box-shadow:none;background:transparent url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20160%20160%22%3E%3Cpath%20d%3D%22M27%2030%20Q25%2011%2045%2014%20Q59%202%2076%2013%20Q96%202%20111%2015%20Q137%207%20137%2030%20Q158%2035%20148%2055%20Q164%2074%20148%2092%20Q159%20115%20140%20125%20Q141%20149%20116%20146%20Q99%20161%2080%20147%20Q58%20160%2043%20145%20Q18%20151%2020%20127%20Q0%20116%2013%2096%20Q0%2077%2013%2059%20Q3%2038%2027%2030Z%22%20fill%3D%22%23f6fbff%22%20stroke%3D%22%23ad98d1%22%20stroke-width%3D%221.6%22/%3E%3C/svg%3E") center/100% 100% no-repeat;padding:24px;gap:10px}.astra-cloud-launch:hover{filter:drop-shadow(0 0 3px #ff39c580)}
+
+/* Two tactile status lamps stay on the right border, even when a tool is closed. */
+.astra-stationery .tower-tool{position:relative;padding-right:35px;box-sizing:border-box}
+.astra-stationery .tower-tool>summary>.tower-controls.tower-light-controls{position:absolute;right:1px;top:0;display:flex!important;flex-direction:column;gap:5px;margin:0;padding:0;z-index:2}
+.astra-stationery .tower-tool:not([open])>summary>.tower-light-controls{display:flex!important}
+.astra-stationery .tower-light-controls button.tower-light[data-control]{display:block;width:19px;height:19px;min-width:19px;min-height:19px;padding:0;border:1px solid #ffffffd9;border-radius:50%;background:radial-gradient(circle at 32% 24%,#fff 0 8%,#ffffffaa 9% 15%,transparent 34%),radial-gradient(circle at 45% 40%,var(--lamp,#e52b52) 28%,#172744 110%);box-shadow:0 0 0 1px #67578088,0 1px 3px #35425c55,0 0 7px color-mix(in srgb,var(--lamp,#e52b52),transparent 50%);cursor:pointer;position:relative}
+.astra-stationery .tower-light[data-control=enabled][data-active=true]{--lamp:#31e889}
+.astra-stationery .tower-light[data-control=sick]{--lamp:#2aafff}
+.astra-stationery .tower-light[data-control=sick][data-active=true]{--lamp:#ff922e}
+.tower-light::after{content:'✦';position:absolute;right:-3px;top:-6px;font:10px/1 system-ui;color:#fff;text-shadow:0 0 3px var(--lamp,#e52b52);animation:lamp-sparkle 7s ease-in-out infinite;pointer-events:none}
+.tower-light[data-control=sick]::after{animation-delay:-3s}.tower-light:hover{transform:scale(1.12)}
+@keyframes lamp-sparkle{0%,75%,100%{opacity:.25;transform:scale(.6)}85%{opacity:1;transform:scale(1.15)}}
+@media(prefers-reduced-motion:reduce){.tower-light::after{animation:none;opacity:.7}}
+
+/* Owner correction: the lamp pair travels together on the left. */
+.astra-stationery .tower-tool{padding-right:0;padding-left:34px}
+.astra-stationery .tower-tool>summary>.tower-controls.tower-light-controls{left:1px;right:auto;top:50%;transform:translateY(-50%);gap:6px}
+.astra-stationery .tower-tool[open]>summary>.tower-controls.tower-light-controls{top:1px;transform:none}
+
+.astra-stationery .tower-tool>summary{position:static}.astra-stationery .tower-light-controls label[hidden]{display:none!important}.astra-shared-split>section{min-width:0}.astra-shared-split :is(input[type=file],textarea){max-width:100%}
+</style><script>/* Shared portrait stationery, mood gallery and bounded zoom. OpenAI Codex GPT-6, 2026-10-15. */
+(() => {
+  function start(){
+    if(document.body.dataset.paperReady)return;
+    document.body.dataset.paperReady='true';
+    const data=document.querySelector('script[data-astra-paper-data]');
+    let config={};try{config=JSON.parse(data?.textContent||'{}');}catch{}
+    const make=(tag,text,parent,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;if(parent)parent.append(e);return e;};
+    let seed=0;for(const c of config.repo||document.title)seed=(seed*31+c.charCodeAt(0))>>>0;
+    const dark=getComputedStyle(document.documentElement).colorScheme==='dark';
+    document.documentElement.style.setProperty('--paper-hue',String(config.hue??seed%360));
+    document.documentElement.style.setProperty('--paper-light',dark?'13%':'90%');
+    document.documentElement.style.setProperty('--paper-ink',dark?'#e8e1eb':'#58445d');
+    document.body.classList.add('astra-stationery');
+    const common=document.querySelector('.tower-shared,.astra-common')||document.body;
+    const gallery=make('section',null,null,'astra-mood-gallery');gallery.setAttribute('aria-label','Nine emotions');
+    const meanings={Sleepy:'The program is open in a background tab.',Awake:'The program is open and you have interacted within the last minute.',Idle:'The program is open, with no interaction for over a minute.',Curious:'A connected tool is running a check.',Happy:'A connected tool reports a successful result, with no known broken tools.',Worried:'At least one tool is marked broken, below your Sick threshold.',Alarmed:'A connected source reports an active alarm.',Sick:'The broken-tool or pending-question and notification count has reached your chosen threshold.',Sad:'This browser had not opened the program for your chosen number of days.'};
+    const grid=make('div',null,gallery,'mood-grid');
+    for(const [label,art] of [['Sleepy','sleep'],['Awake','idle'],['Idle','idle'],['Curious','curious'],['Happy','happy'],['Worried','worried'],['Alarmed','alarmed'],['Sick','sick'],['Sad','sad']]){
+      const item=make('figure',null,grid);if(config.moods?.[art]){const img=make('img',null,item);img.src=config.moods[art];img.alt=(config.pet||'Pet')+' — '+label;img.loading='lazy';}else make('span','Art pending',item,'mood-pending');
+      item.dataset.emotion=label;const bubble=make('figcaption',null,item);make('strong',label.toUpperCase(),bubble);make('span',meanings[label],bubble);
+    }
+    const moodStatus=make('p','',gallery,'mood-status');moodStatus.setAttribute('role','status');
+    const storageKey='astra-pet-activity:'+config.repo;let activity={},storageAvailable=true;
+    try{const parsed=JSON.parse(localStorage.getItem(storageKey)||'{}');activity=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};}catch{storageAvailable=false;}
+    const previousVisit=Number(activity.lastOpened)||0;
+    const limit=(key,fallback,max)=>Number.isInteger(activity[key])&&activity[key]>=1&&activity[key]<=max?activity[key]:fallback;
+    const limits={days:limit('days',30,3650),broken:limit('broken',3,10000),pending:limit('pending',10,10000)};
+    let lastInteraction=Date.now(),health=window.astraPetHealth||{};
+    function saveActivity(){try{localStorage.setItem(storageKey,JSON.stringify({...limits,lastOpened:Date.now()}));}catch{storageAvailable=false;}}
+    if(!document.hidden)saveActivity();
+    function updateEmotion(){
+      const broken=Number.isFinite(health.brokenTools)?health.brokenTools:null;
+      const pending=Number.isFinite(health.unansweredQuestions)&&Number.isFinite(health.notifications)?health.unansweredQuestions+health.notifications:null;
+      let state='Awake',reason='This page is open.';
+      if(document.hidden){state='Sleepy';reason='This page is in the background.';}
+      else if(Date.now()-lastInteraction>60000){state='Idle';reason='No recent interaction.';}
+      if(health.successful===true&&broken===0){state='Happy';reason='The connected tool reported a successful check.';}
+      if(previousVisit&&Date.now()-previousVisit>=limits.days*86400000){state='Sad';reason='This browser had not opened the program for '+limits.days+' days.';}
+      if(health.checking){state='Curious';reason='A check is running.';}
+      if(broken>0){state='Worried';reason=broken+(broken===1?' tool marked broken.':' tools marked broken.');}
+      if(broken>=limits.broken||pending!==null&&pending>=limits.pending){state='Sick';reason=broken>=limits.broken?broken+' tools marked broken.':pending+' pending questions and notifications.';}
+      if(health.alarm===true){state='Alarmed';reason='A connected source reports an active alarm.';}
+      moodStatus.textContent=state+' · '+reason+(pending===null?' Question and notification queues are not connected.':'')+(!storageAvailable?' Visit history is unavailable.':'');
+      for(const figure of grid.children)figure.classList.toggle('current-emotion',figure.dataset.emotion===state);
+    }
+    const settings=make('details',null,gallery,'emotion-settings');make('summary','Emotion settings',settings);
+    make('p','Visit history is local to this browser. Blink stays an animation; Awake and Idle currently share the existing open-eye artwork.',settings);
+    for(const [key,label] of [['days','Days away before Sad'],['broken','Broken tools before Sick'],['pending','Pending questions and notifications before Sick']]){const row=make('label',label,settings);const input=make('input',null,row);input.type='number';input.min='1';input.max=key==='days'?'3650':'10000';input.value=String(limits[key]);input.onchange=()=>{const value=Number(input.value);if(Number.isInteger(value)&&value>=1&&value<=Number(input.max)){limits[key]=value;saveActivity();updateEmotion();}else input.value=String(limits[key]);};}
+    document.addEventListener('astra-pet-health',event=>{health=event.detail||{};updateEmotion();});
+    document.addEventListener('pointerdown',()=>{lastInteraction=Date.now();updateEmotion();},{passive:true});
+    document.addEventListener('keydown',()=>{lastInteraction=Date.now();updateEmotion();},{passive:true});
+    document.addEventListener('input',()=>{lastInteraction=Date.now();updateEmotion();},{passive:true});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)saveActivity();updateEmotion();});
+    setInterval(updateEmotion,30000);updateEmotion();
+    const footer=common.querySelector('footer,[data-astra-shared-footer]');if(footer)common.insertBefore(gallery,footer);else common.append(gallery);
+    for(let i=0;i<2;i++){const flake=make('span','✦',document.body,'paper-glitter');flake.setAttribute('aria-hidden','true');flake.style.left=(12+(seed+i*37)%77)+'%';flake.style.top=(16+(seed+i*23)%65)+'%';flake.style.animationDelay=(-i*11-(seed%17))+'s';}
+    // No stored zoom or toolbar: every load starts at normal size. Ctrl+wheel is bounded by the full-page fit.
+    let factor=1,minimum=1;
+    function measure(){const body=document.body;const height=body.scrollHeight+parseFloat(getComputedStyle(body).marginTop)+parseFloat(getComputedStyle(body).marginBottom);minimum=Math.max(Number.EPSILON,Math.min(1,(innerHeight-32)/height,(innerWidth-16)/body.offsetWidth));}
+    function set(value){measure();factor=Math.min(1,Math.max(minimum,value));document.body.style.zoom=String(factor);document.body.classList.toggle('paper-overview',factor<.999);}
+    document.addEventListener('wheel',event=>{
+      if(!event.ctrlKey)return;event.preventDefault();
+      const before=factor,anchor=(scrollY+event.clientY)/before;
+      set(factor*Math.exp(-event.deltaY*.002));
+      window.scrollTo({top:factor<=minimum+.001?0:anchor*factor-event.clientY,left:0});
+    },{passive:false,capture:true});
+    document.addEventListener('keydown',event=>{if(event.ctrlKey&&['0','-','=','+'].includes(event.key)){event.preventDefault();set(event.key==='0'?1:factor*(event.key==='-'?.9:1.1));}},{capture:true});
+    document.addEventListener('click',event=>{if(factor>=.999)return;event.preventDefault();event.stopImmediatePropagation();const target=event.target;set(1);requestAnimationFrame(()=>{if(target instanceof Element)target.scrollIntoView({block:'center',inline:'center'});});},true);
+    window.addEventListener('resize',()=>{if(factor<1)set(factor);else measure();});measure();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
+</script><!--astra-paper-end--></body>
 </html>
