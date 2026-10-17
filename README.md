@@ -28,6 +28,6 @@ See [docs/handoff-claude-20261009.md](docs/handoff-claude-20261009.md).
 
 - No VR software or performance tracking yet.
 - No pixel art yet. `sprite.json` only lists the nine moods.
-- Not in the Cage yet. Registering it is [card 008](https://github.com/findastra/astras-pet-os/blob/main/handoffs/008-farmer-register-new-placeholders.md) for the Friendly Farmer.
+- In the hub's registry as a pipeline pet ([pets.json](https://github.com/findastra/astras-pet-os/blob/main/pets.json)): it has its own repo and is not registered yet.
 
 Desktop appearance draft updated 2026-10-11: see [desktop details](desktop-pet-20261011.json). This changes the desktop pet, not application features.
