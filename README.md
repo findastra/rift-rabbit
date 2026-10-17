@@ -4,6 +4,14 @@
 
 A white rabbit that preps and tracks VR software and performance. Part of [Astra's Pet Apps](https://github.com/findastra/astras-pet-apps).
 
+## Pictures
+
+![Rift Rabbit's program page: the L3 activity bubble (disconnected), tutorials and a notes box; the app is a placeholder](docs/images/rift-rabbit-program-page-20261017.png)
+
+Rift Rabbit's program page (`index.html`) as it looks on OpenAI Codex's `codex/l3-activity-20261016` branch, which adds the L3 activity bubble, tutorials and notes and is not merged into `main` yet. The app itself is a placeholder.
+
+Screenshots taken 2026-10-17 with GitHub Goldfish's [project-image-generator](https://github.com/findastra/github-goldfish#project-image-generator); added with Claude Opus 5.5 (`claude-opus-5-5`), 2026-10-17.
+
 ## Status
 
 Hatching: this is a placeholder. The repo holds the folder, the registry file and a blank page. Nothing tracks or preps yet, and the rabbit has no finished art.
