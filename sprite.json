@@ -1,5 +1,5 @@
 {
-  "note": "Placeholder. No pixel art yet. Final art follows the shared style in PET-FILES.md of astras-pet-apps (256x256, one-pixel black outline, neon palette).",
+  "note": "Placeholder. No pixel art yet. Final art follows the shared style in PET-FILES.md of astras-pet-os (256x256, one-pixel black outline, neon palette).",
   "size": 256,
   "moods": ["neutral", "happy", "curious", "thinking", "sleepy", "alert", "worried", "sad", "excited"],
   "frames": {}
