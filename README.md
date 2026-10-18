@@ -1,6 +1,6 @@
 # Rift Rabbit
 
-*A pet app by Astra.*
+*An Intelligent App, or Pet, by Astra.*
 
 A white rabbit that preps and tracks VR software and performance. Part of [Astra's PetOS](https://github.com/findastra/astras-pet-os).
 

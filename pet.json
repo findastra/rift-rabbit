@@ -15,5 +15,10 @@
   "built_with": "Claude Haiku 5.5 (claude-haiku-5-5), 2026-10-09; brought up to the pet file rules with Claude Opus 5.5 (claude-opus-5-5), 2026-10-09; original art draft with OpenAI Codex (GPT-6), built-in imagegen, 2026-10-11; OpenAI Codex (GPT-6), 2026-10-11",
   "updated": "2026-10-11",
   "desktop_pet": "https://raw.githubusercontent.com/findastra/astras-pet-os/main/desktop-art/rift-rabbit/desktop-pet-20261011.json",
-  "desktop_art_built_with": "OpenAI Codex (GPT-6), built-in imagegen and native renderer, 2026-10-11"
+  "desktop_art_built_with": "OpenAI Codex (GPT-6), built-in imagegen and native renderer, 2026-10-11",
+  "audit": {
+    "cadence": "weekly",
+    "subject": "your VR software and performance notes",
+    "needs": "your headset and PC details"
+  }
 }
