@@ -30,4 +30,4 @@ See [docs/handoff-claude-20261009.md](docs/handoff-claude-20261009.md).
 - No pixel art yet. `sprite.json` only lists the nine moods.
 - Not in the Cage yet. Registering it is [card 008](https://github.com/findastra/astras-pet-apps/blob/main/handoffs/008-farmer-register-new-placeholders.md) for the Friendly Farmer.
 
-Desktop appearance draft updated 2026-10-11: see [desktop details](desktop-pet-20261011.json). This changes the desktop pet, not application features.
+Desktop appearance draft updated 2026-10-11: see [desktop details](https://raw.githubusercontent.com/findastra/astras-pet-os/main/desktop-art/rift-rabbit/desktop-pet-20261011.json). This changes the desktop pet, not application features.
