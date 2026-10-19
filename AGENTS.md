@@ -1,6 +1,6 @@
 # AGENTS.md: Rift Rabbit
 
-Rift Rabbit is an Intelligent App, or Pet, by Astra (repo `findastra/rift-rabbit`). It is a **hatching** placeholder.
+Rift Rabbit is a pet by Astra (repo `findastra/rift-rabbit`). It is a **hatching** placeholder.
 
 Rules for any assistant working here:
 
