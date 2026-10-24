@@ -4,7 +4,7 @@
   "owner": "Astra",
   "sprite": "sprite.json",
   "job": "A white rabbit that preps and tracks VR software and performance.",
-  "runs_on": "Windows desktop (placeholder; not decided yet).",
+  "runs_on": "Windows desktop: rift-rabbit-20261024.exe, a background program with no window and no tray icon that listens on this PC only (127.0.0.1) for the Launch buttons on Rift Rabbit's page.",
   "entry": "index.html",
   "status": "hatching",
   "cage": {
@@ -12,13 +12,24 @@
     "home": "README.md",
     "repository": "https://github.com/findastra/astras-pet-os"
   },
-  "built_with": "Claude Haiku 5.5 (claude-haiku-5-5), 2026-10-09; brought up to the pet file rules with Claude Opus 5.5 (claude-opus-5-5), 2026-10-09; original art draft with OpenAI Codex (GPT-6), built-in imagegen, 2026-10-11; OpenAI Codex (GPT-6), 2026-10-11",
-  "updated": "2026-10-11",
+  "built_with": "Claude Haiku 5.5 (claude-haiku-5-5), 2026-10-09; brought up to the pet file rules with Claude Opus 5.5 (claude-opus-5-5), 2026-10-09; original art draft with OpenAI Codex (GPT-6), built-in imagegen, 2026-10-11; OpenAI Codex (GPT-6), 2026-10-11; its launcher (rift-rabbit-20261024.cs, vr-launch-20261024.cs) with Claude Opus 5.5 (claude-opus-5-5), 2026-10-24",
+  "updated": "2026-10-24",
   "desktop_pet": "https://raw.githubusercontent.com/findastra/astras-pet-os/main/desktop-art/rift-rabbit/desktop-pet-20261011.json",
   "desktop_art_built_with": "OpenAI Codex (GPT-6), built-in imagegen and native renderer, 2026-10-11",
   "audit": {
     "cadence": "weekly",
     "subject": "your VR software and performance notes",
     "needs": "your headset and PC details"
-  }
+  },
+  "tools": [
+    {
+      "name": "vr-launch",
+      "label": "wonderland-launchpad-v1.0-vr-launch-v1.0",
+      "version": "v1.0",
+      "intended_use": "Starts a VRChat setup's programs in Astra's order when she presses Launch on Rift Rabbit's page opened from her PC: SteamVR's Space Override / Space Sync add-ons for the mode, the streamer, the headset (it waits), SteamVR, the programs SteamVR used to auto-start, the mode's own program, DoubleHip DoubleChest Tracker, OVR Smooth Tracking, OSCGoesBrrr, the Woojer vest (Voicemeeter), a light for each thing Start VRChat waits for, then VRChat with her ignored trackers. 127.0.0.1 only, with a code kept in Documents; it takes only the page's fixed values.",
+      "visibility": "private",
+      "runs": "this PC only",
+      "merged": false
+    }
+  ]
 }

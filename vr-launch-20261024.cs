@@ -1,0 +1,882 @@
+// Rift Rabbit's launcher (`wonderland-launchpad-v1.0-vr-launch-v1.0`): the PC side of the Launch buttons on its VRChat
+// setups (Wonderland Launchpad, hub page apps/pet-programs/rift-rabbit-20261018.html). A web page cannot start programs,
+// so the page asks Rift Rabbit's program on this PC only (127.0.0.1), and it starts each program in Astra's order, waits
+// while she puts the headset on, checks that every device and program the mode needs is on, and starts VRChat when she
+// presses Start VRChat.
+// Astra, 2026-10-24: "Maybe i need to turn off all of the launch dependencies so this can be the main control hub", her
+// answers to the six launcher questions ("All recommended"): the launcher owns VRCFaceTracking, OVR Advanced Settings,
+// OVR Dynamic Resolution and Space Calibrator (SteamVR's own auto-start is off for them); it checks, she says go; VRChat
+// ignores the trackers her notes list for the Double Hip / Double Chest choice, plus the head tracker ([H]) in the modes
+// with one; it sets DoubleHip DoubleChest Tracker's Hip / Chest for her choice; 127.0.0.1 only, with a secret code. Then:
+// "Launching is done by Rift Rabbit", and "Install both space sync and space override now": each mode switches SteamVR's
+// Space Override and Space Sync add-ons before anything starts, and opens its own overlay.
+// Claude Opus 5.5 (claude-opus-5-5), 2026-10-24. C# 5 for the compiler that ships with Windows.
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using AstrasPetOs.FarmEvents;
+
+namespace AstrasPetOs.RiftRabbit
+{
+    // What one Launch button asks for: the headset box it is in, its mode and that box's switches.
+    sealed class LaunchRequest
+    {
+        public string Headset, Mode, Streamer, Double, Object;
+        public bool Osc, Woojer;
+
+        public static readonly string[] Headsets = { "quest-pro", "quest-3" };
+        public static readonly string[] Modes = { "native", "space-calibrator", "space-override", "space-sync" };
+        public static readonly string[] Streamers = { "virtual-desktop", "steam-link", "meta-horizon-link" };
+        public static readonly string[] Doubles = { "", "hip", "chest", "both" };
+        // Object Track VR's objects (Astra, 2026-10-24); the program is not out yet.
+        public static readonly string[] Objects = { "", "small-hoop", "large-hoop", "dance-pole" };
+
+        public bool Face { get { return Headset == "quest-pro"; } }
+        public string Device { get { return Headset == "quest-pro" ? "Quest Pro" : "Quest 3"; } }
+        // Every mode but the native one has a tracker mounted on the headset.
+        public bool HeadTracker { get { return Mode != "native"; } }
+
+        // Only the page's own fixed values; anything else is refused, so nothing a page sends reaches a command line.
+        public static LaunchRequest From(IDictionary<string, object> body, out string problem)
+        {
+            problem = null;
+            var r = new LaunchRequest
+            {
+                Headset = FarmEvent.Str(body, "headset"), Mode = FarmEvent.Str(body, "mode"),
+                Streamer = FarmEvent.Str(body, "streamer") ?? "virtual-desktop", Double = FarmEvent.Str(body, "double") ?? "", Object = FarmEvent.Str(body, "object") ?? "",
+                Osc = Equals(FarmEvent.Get(body, "osc"), true), Woojer = Equals(FarmEvent.Get(body, "woojer"), true),
+            };
+            if (!Headsets.Contains(r.Headset)) problem = "Not one of the headsets.";
+            else if (!Modes.Contains(r.Mode)) problem = "Not one of the modes.";
+            else if (!Streamers.Contains(r.Streamer)) problem = "Not one of the streamers.";
+            else if (!Doubles.Contains(r.Double)) problem = "Not one of the Double Hip / Double Chest choices.";
+            else if (!Objects.Contains(r.Object)) problem = "Not one of Object Track VR's objects.";
+            return problem == null ? r : null;
+        }
+    }
+
+    // This PC's settings, never committed: Documents\Astra's PetOS Data\rift-rabbit\vr-launch-settings-20261024.json.
+    // Made with her notes' values the first time; she (or a chat) edits it there.
+    sealed class LaunchSettings
+    {
+        public const string FileName = "vr-launch-settings-20261024.json";
+        public int Port = 47621;
+        public string Code;
+        // VRChat's --ignore-trackers list for each Double Hip / Double Chest choice, by serial. From her ignore-trackers
+        // notes (vr-gaming on her desktop): Both W, M, C, [ ]; Double Hip W, M; Double Chest C, [ ].
+        public Dictionary<string, string[]> Ignore = new Dictionary<string, string[]> {
+            { "", new string[0] },
+            { "hip", new[] { "LHR-467E1FA2", "LHR-91D63DB2" } },
+            { "chest", new[] { "LHR-6BA0C57A", "LHR-28D88802" } },
+            { "both", new[] { "LHR-467E1FA2", "LHR-91D63DB2", "LHR-6BA0C57A", "LHR-28D88802" } },
+        };
+        // The tracker on the headset in modes x.1 to x.3, and DoubleHip DoubleChest Tracker's two pairs. Empty until Astra says which
+        // (her answers to questions 3 and 4): with no pairs, the launcher sets only Hip / Chest and leaves the pairs as
+        // they are in DoubleHip DoubleChest Tracker.
+        public string HeadTracker = "";
+        public string[] HipPair = new string[0], ChestPair = new string[0];
+        public string DoubleHipTracker = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "DoubleHip DoubleChest", "DoubleHipTracker-V1.3.0", "double-hip-tracker.exe");
+
+        public static readonly Regex Serial = new Regex(@"^LHR-[0-9A-F]{8}$");
+
+        public static string Folder() { return Rabbit.DocumentsFolder(); }
+
+        public static LaunchSettings Load(string folder)
+        {
+            var s = new LaunchSettings();
+            string file = Path.Combine(folder, FileName);
+            bool changed = false;
+            try
+            {
+                var m = File.Exists(file) ? FarmEvent.Map(FarmEvent.Json().DeserializeObject(File.ReadAllText(file))) : null;
+                if (m != null)
+                {
+                    object port = FarmEvent.Get(m, "port");
+                    if (port is int && (int)port > 1024 && (int)port < 65536) s.Port = (int)port;
+                    s.Code = FarmEvent.Str(m, "code");
+                    var ignore = FarmEvent.Map(FarmEvent.Get(m, "ignore_trackers"));
+                    if (ignore != null)
+                        foreach (string k in LaunchRequest.Doubles)
+                            if (FarmEvent.Get(ignore, k == "" ? "off" : k) != null) s.Ignore[k] = Serials(FarmEvent.Get(ignore, k == "" ? "off" : k));
+                    s.HeadTracker = Serials(FarmEvent.Get(m, "head_tracker")).FirstOrDefault() ?? "";
+                    s.HipPair = Pair(FarmEvent.Get(m, "hip_pair"));
+                    s.ChestPair = Pair(FarmEvent.Get(m, "chest_pair"));
+                    string dht = FarmEvent.Str(m, "double_hip_tracker");
+                    if (!string.IsNullOrEmpty(dht) && Path.IsPathRooted(dht) && dht.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) s.DoubleHipTracker = dht;
+                }
+                else changed = true;
+            }
+            catch (Exception) { }
+            if (string.IsNullOrEmpty(s.Code) || s.Code.Length < 32) { s.Code = NewCode(); changed = true; }
+            if (changed) try { s.Save(folder); } catch (Exception) { }
+            return s;
+        }
+
+        // Only serials, so a hand edit cannot put anything else on VRChat's command line.
+        static string[] Serials(object v)
+        {
+            var list = v as System.Collections.IEnumerable;
+            if (v is string) list = new[] { (string)v };
+            if (list == null) return new string[0];
+            return list.Cast<object>().Select(o => (o as string ?? "").Trim().ToUpperInvariant()).Where(x => Serial.IsMatch(x)).Distinct().ToArray();
+        }
+
+        static string[] Pair(object v) { var p = Serials(v); return p.Length == 2 ? p : new string[0]; }
+
+        static string NewCode()
+        {
+            var bytes = new byte[24];
+            using (var rng = new RNGCryptoServiceProvider()) rng.GetBytes(bytes);
+            return FarmEvent.Hex(bytes);
+        }
+
+        public void Save(string folder)
+        {
+            Directory.CreateDirectory(folder);
+            var d = new Dictionary<string, object>();
+            d["schema"] = "rift-rabbit-vr-launch-settings-v1";
+            d["about"] = "Rift Rabbit's Launch buttons. This PC only: never commit or share the code.";
+            d["port"] = Port;
+            d["code"] = Code;
+            d["ignore_trackers"] = LaunchRequest.Doubles.ToDictionary(k => k == "" ? "off" : k, k => (object)Ignore[k]);
+            d["head_tracker"] = HeadTracker;
+            d["hip_pair"] = HipPair;
+            d["chest_pair"] = ChestPair;
+            d["double_hip_tracker"] = DoubleHipTracker;
+            File.WriteAllText(Path.Combine(folder, FileName), FarmEvent.Json().Serialize(d), new UTF8Encoding(false));
+        }
+
+        // The trackers VRChat ignores for this launch: the Double choice's, and the head tracker in the modes with one.
+        public string[] IgnoreFor(LaunchRequest r)
+        {
+            var list = new List<string>(Ignore.ContainsKey(r.Double ?? "") ? Ignore[r.Double ?? ""] : new string[0]);
+            if (r.HeadTracker && HeadTracker.Length > 0) list.Add(HeadTracker);
+            return list.Where(x => Serial.IsMatch(x)).Distinct().ToArray();
+        }
+    }
+
+    sealed class LaunchStep
+    {
+        public string Id, Name, Note = "";
+        public string State = "waiting";   // waiting | now | you | done | skipped | failed
+        public Dictionary<string, object> ToData() { return new Dictionary<string, object> { { "id", Id }, { "name", Name }, { "state", State }, { "note", Note } }; }
+    }
+
+    static class VrLaunch
+    {
+        public const string Tool = "wonderland-launchpad-v1.0-vr-launch-v1.0";
+        public const string PageDataName = "vr-launch-page-data.js";
+        public const int OpenWaitSeconds = 60;
+
+        // Space Override and Space Sync are SteamVR drivers; a mode works only once its driver is registered with SteamVR
+        // (both were installed on 2026-10-24).
+        public static bool Installed(string mode)
+        {
+            if (mode == "native" || mode == "space-calibrator") return true;
+            string want = mode == "space-override" ? "spaceoverride" : "spacesync";
+            foreach (string dir in DriverFolders())
+                if (dir.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "").Contains(want)) return true;
+            return false;
+        }
+
+        static IEnumerable<string> DriverFolders()
+        {
+            var found = new List<string>();
+            try
+            {
+                string paths = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "openvr", "openvrpaths.vrpath");
+                var m = File.Exists(paths) ? FarmEvent.Map(FarmEvent.Json().DeserializeObject(File.ReadAllText(paths))) : null;
+                var ext = m == null ? null : FarmEvent.Get(m, "external_drivers") as System.Collections.IEnumerable;
+                if (ext != null) found.AddRange(ext.Cast<object>().OfType<string>());
+                var rt = m == null ? null : FarmEvent.Get(m, "runtime") as System.Collections.IEnumerable;
+                if (rt != null)
+                    foreach (string r in rt.Cast<object>().OfType<string>())
+                        if (Directory.Exists(Path.Combine(r, "drivers"))) found.AddRange(Directory.GetDirectories(Path.Combine(r, "drivers")));
+            }
+            catch (Exception) { }
+            return found;
+        }
+
+        // The steps of one launch, in Astra's order (hub #236's launchOrder()).
+        public static List<LaunchStep> Plan(LaunchRequest r)
+        {
+            var steps = new List<LaunchStep>();
+            Action<string, string> add = (id, name) => steps.Add(new LaunchStep { Id = id, Name = name });
+            string streamer = StreamerProgram(r.Streamer);
+            // First, before anything can start SteamVR (Virtual Desktop starts it from the headset): only this mode's
+            // add-on is on.
+            add("addons", "SteamVR add-ons for this mode");
+            add("open:" + streamer, VrPrograms.Find(streamer).Name);
+            add("headset", "Put on the " + r.Device);
+            add("streamer-on-headset", (r.Streamer == "virtual-desktop" ? "Virtual Desktop" : r.Streamer == "steam-link" ? "Steam Link" : "Meta Horizon Link") + " on the " + r.Device);
+            add("open:steamvr", "SteamVR");
+            if (r.Face) add("open:vrcft", "VRCFaceTracking");
+            add("open:ovr-advanced-settings", "OVR Advanced Settings");
+            add("open:ovr-dynamic-resolution", "OVR Dynamic Resolution");
+            if (r.Mode == "space-calibrator") add("open:space-calibrator", "Space Calibrator");
+            else add("close:space-calibrator", "Space Calibrator stays closed");
+            if (r.Mode == "space-override") add("open:space-override", "Space Override");
+            if (r.Mode == "space-sync") add("open:space-sync", "Space Sync (Follow SLAM HMD mode)");
+            if (r.Double != "") add("open:double-hip-tracker", "DoubleHip DoubleChest Tracker (" + (r.Double == "hip" ? "Double Hip" : r.Double == "chest" ? "Double Chest" : "Both") + ")");
+            if (!string.IsNullOrEmpty(r.Object)) add("object-track", "Object Track VR (" + (r.Object == "small-hoop" ? "Small Hoop" : r.Object == "large-hoop" ? "Large Hoop" : "Dance Pole") + ")");
+            add("open:ovr-smooth-tracking", "OVR Smooth Tracking");
+            if (r.Osc) add("open:oscgoesbrrr", "OSCGoesBrrr");
+            // The Woojer vest (Astra, 2026-10-24: "We also need an option for Woojer vest (similar to OSCGoesBrrr)") has
+            // no program of its own: it is a Bluetooth audio device ("Woojer Vest S3") that Voicemeeter plays to.
+            if (r.Woojer) add("woojer", "Woojer vest (Voicemeeter)");
+            add("wait", "Wait until everything is connected and the trackers look smooth");
+            add("vrchat", "VRChat");
+            return steps;
+        }
+
+        // SteamVR's add-ons (Settings > Startup / Shutdown > Manage Add-ons) for Space Override and Space Sync: on only in
+        // their own mode. Both are off otherwise, so SteamVR started by hand behaves as before they were installed. Only
+        // their two "enable" values in steamvr.vrsettings change; the rest of the file stays as SteamVR wrote it.
+        public static readonly string[] AddOns = { "spaceoverride", "spacesync" };
+        public static bool AddOnOn(string driver, string mode) { return (driver == "spaceoverride" && mode == "space-override") || (driver == "spacesync" && mode == "space-sync"); }
+
+        public static string SteamVrSettings()
+        {
+            string steam = Path.GetDirectoryName(SteamExe());
+            return Path.Combine(steam, "config", "steamvr.vrsettings");
+        }
+
+        // The file's text with each add-on's "enable" set for the mode; an add-on SteamVR has no entry for gets one.
+        public static string WithAddOns(string text, string mode)
+        {
+            foreach (string driver in AddOns)
+            {
+                string want = AddOnOn(driver, mode) ? "true" : "false";
+                var block = new Regex("(\"driver_" + driver + "\"\\s*:\\s*\\{[^{}]*?\"enable\"\\s*:\\s*)(true|false)");
+                if (block.IsMatch(text)) text = block.Replace(text, "${1}" + want, 1);
+                else
+                {
+                    int at = text.IndexOf('{');
+                    if (at < 0) throw new InvalidDataException("steamvr.vrsettings is not a settings file.");
+                    text = text.Substring(0, at + 1) + "\n   \"driver_" + driver + "\" : {\n      \"enable\" : " + want + "\n   }," + text.Substring(at + 1);
+                }
+            }
+            if (FarmEvent.Map(FarmEvent.Json().DeserializeObject(text)) == null) throw new InvalidDataException("steamvr.vrsettings would not read back.");
+            return text;
+        }
+
+        // Whether the add-ons are already as the mode needs them (true, false; null when not set).
+        public static bool AddOnsMatch(string text, string mode)
+        {
+            var m = FarmEvent.Map(FarmEvent.Json().DeserializeObject(text));
+            foreach (string driver in AddOns)
+            {
+                var d = FarmEvent.Map(FarmEvent.Get(m, "driver_" + driver));
+                bool on = d == null || !Equals(FarmEvent.Get(d, "enable"), false);   // SteamVR loads an add-on unless told not to
+                if (on != AddOnOn(driver, mode)) return false;
+            }
+            return true;
+        }
+
+        // Steam Link needs only Steam on the PC; the other two have a program of their own.
+        public static string StreamerProgram(string streamer) { return streamer == "steam-link" ? "steam" : streamer; }
+
+        // What must be on before Start VRChat lights up: the headset, both Index controllers, the head tracker in the
+        // modes with one, DoubleHip DoubleChest Tracker's trackers for the choice (once their pairs are known), and every program
+        // this launch opened.
+        public static List<KeyValuePair<string, string>> NeededDevices(LaunchRequest r, LaunchSettings s)
+        {
+            var need = new List<KeyValuePair<string, string>> {
+                new KeyValuePair<string, string>(r.Headset, r.Device),
+                new KeyValuePair<string, string>("index-controller-left", "Left Index controller"),
+                new KeyValuePair<string, string>("index-controller-right", "Right Index controller") };
+            var serials = new List<string>();
+            if (r.HeadTracker && s.HeadTracker.Length > 0) serials.Add(s.HeadTracker);
+            if (r.Double == "hip" || r.Double == "both") serials.AddRange(s.HipPair);
+            if (r.Double == "chest" || r.Double == "both") serials.AddRange(s.ChestPair);
+            foreach (string serial in serials.Distinct())
+            {
+                var row = VrDevices.Table.Select(t => t.Split('|')).FirstOrDefault(f => f[2] == serial);
+                if (row != null) need.Add(new KeyValuePair<string, string>(row[0], row[1]));
+            }
+            return need;
+        }
+
+        // VRChat with its trackers ignored: a shortcut to Steam's VRChat with --ignore-trackers, opened through
+        // explorer.exe like every other program (her rule), so nothing runs from inside this program's process tree.
+        public static string VrChatArguments(string[] ignore)
+        {
+            return "-applaunch 438100" + (ignore.Length > 0 ? " --ignore-trackers=" + string.Join(",", ignore) : "");
+        }
+
+        public static string SteamExe()
+        {
+            string steam = null;
+            try { using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam")) steam = key == null ? null : key.GetValue("SteamExe") as string; }
+            catch (Exception) { }
+            if (string.IsNullOrEmpty(steam)) steam = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam", "steam.exe");
+            return steam.Replace('/', '\\');
+        }
+
+        public static void MakeShortcut(string lnk, string target, string arguments)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(lnk));
+            Type t = Type.GetTypeFromProgID("WScript.Shell");
+            object shell = Activator.CreateInstance(t);
+            try
+            {
+                object s = t.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { lnk });
+                Type st = s.GetType();
+                st.InvokeMember("TargetPath", BindingFlags.SetProperty, null, s, new object[] { target });
+                st.InvokeMember("Arguments", BindingFlags.SetProperty, null, s, new object[] { arguments });
+                st.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, s, new object[] { Path.GetDirectoryName(target) });
+                st.InvokeMember("Save", BindingFlags.InvokeMethod, null, s, null);
+                Release(s);
+            }
+            finally { Release(shell); }
+        }
+
+        static void Release(object o) { try { System.Runtime.InteropServices.Marshal.FinalReleaseComObject(o); } catch (Exception) { } }
+
+        // DoubleHip DoubleChest Tracker's settings for the choice: Enable Hip / Enable Chest, and the pairs once Astra has said which.
+        // Its own settings are kept once, the first time, beside it. Everything else stays as she set it in the app.
+        public static string SetDoubleHip(string configFile, string choice, LaunchSettings s)
+        {
+            if (!File.Exists(configFile)) return "Its settings file was not found, so it opens as it is.";
+            string backup = Path.Combine(Path.GetDirectoryName(configFile), "user_config.before-rift-rabbit-20261024.json");
+            if (!File.Exists(backup)) File.Copy(configFile, backup);
+            var m = FarmEvent.Map(FarmEvent.Json().DeserializeObject(File.ReadAllText(configFile)));
+            if (m == null) return "Its settings file could not be read, so it opens as it is.";
+            m["useHip"] = choice == "hip" || choice == "both";
+            m["useChest"] = choice == "chest" || choice == "both";
+            string pairs = "its pairs left as they are";
+            if (s.HipPair.Length == 2) { m["useHipAutomatic"] = false; m["extraSerialA"] = s.HipPair[0]; m["extraSerialB"] = s.HipPair[1]; }
+            if (s.ChestPair.Length == 2) { m["chestSerialA"] = s.ChestPair[0]; m["chestSerialB"] = s.ChestPair[1]; }
+            if (s.HipPair.Length == 2 || s.ChestPair.Length == 2) pairs = "its pairs from the launcher's settings";
+            string tmp = configFile + ".tmp";
+            File.WriteAllText(tmp, FarmEvent.Json().Serialize(m), new UTF8Encoding(false));
+            File.Replace(tmp, configFile, null);
+            return "Hip " + ((bool)m["useHip"] ? "on" : "off") + ", Chest " + ((bool)m["useChest"] ? "on" : "off") + ", " + pairs + ".";
+        }
+
+        public static string PageDataFile() { return Path.Combine(LaunchSettings.Folder(), PageDataName); }
+
+        // What the page needs to reach the launcher: its address, the code, and which modes can run. In Documents, so only a
+        // page opened from this PC can read it.
+        public static void WritePageData(string file, LaunchSettings s, bool on)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(file));
+            var d = new Dictionary<string, object>();
+            d["schema"] = "rift-rabbit-vr-launch-v1";
+            d["tool"] = Tool;
+            d["on"] = on;
+            d["url"] = "http://127.0.0.1:" + s.Port + "/";
+            d["code"] = on ? s.Code : "";
+            d["time"] = FarmEvent.Now(DateTimeOffset.Now);
+            d["installed"] = LaunchRequest.Modes.ToDictionary(m => m, m => (object)Installed(m));
+            string json = FarmEvent.Json().Serialize(d).Replace("<", "\\u003c");
+            string tmp = file + ".tmp";
+            File.WriteAllText(tmp, "window.riftRabbitLaunch = " + json + ";\n", new UTF8Encoding(false));
+            if (File.Exists(file)) File.Replace(tmp, file, null); else File.Move(tmp, file);
+        }
+    }
+
+    // One launch at a time, run on its own thread. The page reads its steps every second.
+    sealed class LaunchRun
+    {
+        readonly RabbitState rabbit;
+        readonly LaunchSettings settings;
+        public readonly LaunchRequest Request;
+        public readonly List<LaunchStep> Steps;
+        readonly object gate = new object();
+        volatile bool stop, next, go;
+        public string State = "running";   // running | ready | done | stopped | failed
+        public string Said = "";
+        public List<Dictionary<string, object>> Checks = new List<Dictionary<string, object>>();
+        readonly List<string> opened = new List<string>();
+        public readonly DateTimeOffset Started = DateTimeOffset.Now;
+
+        public LaunchRun(RabbitState rabbit, LaunchSettings settings, LaunchRequest r)
+        {
+            this.rabbit = rabbit; this.settings = settings; Request = r; Steps = VrLaunch.Plan(r);
+        }
+
+        public void Start() { var t = new Thread(Run) { IsBackground = true, Name = "vr-launch" }; t.Start(); }
+        public void Stop() { stop = true; }
+        public void Next() { next = true; }
+        public bool Go()
+        {
+            lock (gate) { if (State != "ready") return false; go = true; return true; }
+        }
+
+        public Dictionary<string, object> ToData()
+        {
+            lock (gate)
+            {
+                return new Dictionary<string, object> {
+                    { "state", State }, { "said", Said }, { "headset", Request.Headset }, { "mode", Request.Mode },
+                    { "started", FarmEvent.Now(Started) },
+                    { "steps", Steps.Select(s => (object)s.ToData()).ToList() },
+                    { "checks", Checks.Cast<object>().ToList() } };
+            }
+        }
+
+        void Set(LaunchStep s, string state, string note) { lock (gate) { s.State = state; if (note != null) s.Note = note; } }
+        void Say(string state, string said) { lock (gate) { State = state; Said = said; } }
+
+        void Wait(int ms) { for (int i = 0; i < ms / 100 && !stop; i++) Thread.Sleep(100); }
+
+        static bool On(string deviceId) { return VrDevices.Look(VrDevices.LogFile()).Any(d => d.Id == deviceId && d.On); }
+        static bool Running(string programId) { return VrPrograms.Look(VrPrograms.Find(programId)).Running; }
+
+        string Open(string id)
+        {
+            var w = VrPrograms.Find(id);
+            if (id == "double-hip-tracker" && File.Exists(settings.DoubleHipTracker)) w = new VrProgram { Id = w.Id, Name = w.Name, Exes = w.Exes, PathHas = w.PathHas, Open = settings.DoubleHipTracker };
+            if (!VrPrograms.OpensSafely(w.Open)) return w.Name + " has no safe way to open.";
+            opened.Add(id);
+            if (VrPrograms.Look(w).Running) return "Already open.";
+            using (Process.Start(new ProcessStartInfo("explorer.exe", "\"" + w.Open + "\"") { UseShellExecute = false })) { }
+            var until = DateTime.Now.AddSeconds(VrLaunch.OpenWaitSeconds);
+            while (DateTime.Now < until && !stop)
+            {
+                Wait(500);
+                if (VrPrograms.Look(w).Running) return "Open.";
+            }
+            return null;
+        }
+
+        void Run()
+        {
+            rabbit.Event(VrLaunch.Tool, "launch-started", "info", "Launch: " + Request.Device + ", " + Request.Mode, new Dictionary<string, object> { { "headset", Request.Headset }, { "mode", Request.Mode }, { "streamer", Request.Streamer }, { "double", Request.Double }, { "osc", Request.Osc } });
+            try
+            {
+                foreach (var s in Steps)
+                {
+                    if (stop) break;
+                    Set(s, "now", null);
+                    if (s.Id == "addons")
+                    {
+                        string file = VrLaunch.SteamVrSettings();
+                        string text = File.Exists(file) ? File.ReadAllText(file) : null;
+                        string which = Request.Mode == "space-override" ? "Space Override on, Space Sync off" : Request.Mode == "space-sync" ? "Space Sync on, Space Override off" : "Space Override and Space Sync off";
+                        if (text != null && VrLaunch.AddOnsMatch(text, Request.Mode)) { Set(s, "done", which + "."); continue; }
+                        if (Running("steamvr"))
+                        {
+                            // SteamVR reads its add-ons when it starts, so a running one cannot be changed under it.
+                            Set(s, "failed", "SteamVR is already open with the other add-ons. Close SteamVR, then press Launch again (" + which + ").");
+                            stop = true;
+                            continue;
+                        }
+                        if (text == null) { Set(s, "failed", "SteamVR's settings file was not found."); stop = true; continue; }
+                        string backup = Path.Combine(LaunchSettings.Folder(), "steamvr-before-rift-rabbit-20261024.vrsettings");
+                        if (!File.Exists(backup)) File.Copy(file, backup);
+                        File.WriteAllText(file, VrLaunch.WithAddOns(text, Request.Mode), new UTF8Encoding(false));
+                        Set(s, "done", which + ".");
+                        continue;
+                    }
+                    if (s.Id == "headset" || s.Id == "streamer-on-headset")
+                    {
+                        // Her side: the headset and its streamer. Done when SteamVR sees the headset, or when she presses
+                        // Next because her streamer does not start SteamVR by itself.
+                        if (s.Id == "headset") Set(s, "you", "Put it on and wake it up.");
+                        else Set(s, "you", "Open it on the headset and connect. When SteamVR has not started by itself, press Next.");
+                        while (!stop && !next && !On(Request.Headset)) Wait(1000);
+                        if (s.Id == "streamer-on-headset") next = false;
+                        if (!stop) Set(s, "done", "");
+                        continue;
+                    }
+                    if (s.Id == "open:steamvr")
+                    {
+                        if (!Running("steamvr")) Open("steamvr"); else opened.Add("steamvr");
+                        Set(s, "now", "Waiting for SteamVR to see the " + Request.Device + ".");
+                        while (!stop && !On(Request.Headset)) Wait(1000);
+                        if (!stop) Set(s, "done", "It sees the " + Request.Device + ".");
+                        continue;
+                    }
+                    if (s.Id == "close:space-calibrator")
+                    {
+                        if (!Running("space-calibrator")) { Set(s, "skipped", "Not open."); continue; }
+                        string said = VrPrograms.Close(rabbit, VrPrograms.Find("space-calibrator"), 10);
+                        Set(s, said.EndsWith(" closed.") ? "done" : "failed", said);
+                        continue;
+                    }
+                    if (s.Id == "open:double-hip-tracker")
+                    {
+                        string note = "";
+                        if (Running("double-hip-tracker")) note = "It was already open, so its settings were left as they are. ";
+                        else
+                        {
+                            try { note = VrLaunch.SetDoubleHip(Path.Combine(Path.GetDirectoryName(settings.DoubleHipTracker), "user_config.json"), Request.Double, settings) + " "; }
+                            catch (Exception e) { note = "Its settings could not be set (" + e.Message + "). "; }
+                        }
+                        string r = Open("double-hip-tracker");
+                        Set(s, r == null ? "failed" : "done", note + (r ?? "It did not start within " + VrLaunch.OpenWaitSeconds + " seconds."));
+                        continue;
+                    }
+                    if (s.Id == "object-track")
+                    {
+                        // Not out yet (Steam lists it as coming soon): nothing to open, so the step says so and the
+                        // launch goes on. It gets a row in program-watch once it is installed.
+                        Set(s, "skipped", "Not installed yet: Object Track VR is not out. Nothing was opened.");
+                        continue;
+                    }
+                    if (s.Id == "woojer")
+                    {
+                        // Voicemeeter open is all the PC can do; whether the vest is on and connected only she can see.
+                        string r = Open("voicemeeter");
+                        Set(s, r == null ? "failed" : "done", r == null ? "Voicemeeter did not start within " + VrLaunch.OpenWaitSeconds + " seconds." :
+                            "Voicemeeter: " + r + " Turn the vest on: once Windows has it connected (Woojer Vest S3, Bluetooth), Voicemeeter plays to it.");
+                        continue;
+                    }
+                    if (s.Id.StartsWith("open:"))
+                    {
+                        string r = Open(s.Id.Substring(5));
+                        Set(s, r == null ? "failed" : "done", r ?? "It did not start within " + VrLaunch.OpenWaitSeconds + " seconds.");
+                        continue;
+                    }
+                    if (s.Id == "wait")
+                    {
+                        while (!stop && !go)
+                        {
+                            var devices = VrDevices.Look(VrDevices.LogFile());
+                            var progs = VrPrograms.Look(opened.Distinct().Select(id => VrPrograms.Find(id)));
+                            var checks = VrLaunch.NeededDevices(Request, settings).Select(d => new Dictionary<string, object> { { "id", d.Key }, { "name", d.Value }, { "on", devices.Any(x => x.Id == d.Key && x.On) } })
+                                .Concat(progs.Select(p => new Dictionary<string, object> { { "id", p.Program.Id }, { "name", p.Program.Name }, { "on", p.Running } })).ToList();
+                            var missing = checks.Where(c => !(bool)c["on"]).Select(c => (string)c["name"]).ToList();
+                            lock (gate)
+                            {
+                                Checks = checks;
+                                if (missing.Count == 0) { State = "ready"; s.State = "you"; s.Note = "All green. Press Start VRChat when the trackers look smooth."; }
+                                else { State = "running"; s.State = "now"; s.Note = "Waiting for: " + string.Join(", ", missing) + "."; }
+                            }
+                            Wait(1000);
+                        }
+                        if (!stop) Set(s, "done", "");
+                        continue;
+                    }
+                    if (s.Id == "vrchat")
+                    {
+                        Say("running", "");
+                        string[] ignore = settings.IgnoreFor(Request);
+                        string lnk = Path.Combine(LaunchSettings.Folder(), "vr-launch", "vrchat-20261024.lnk");
+                        VrLaunch.MakeShortcut(lnk, VrLaunch.SteamExe(), VrLaunch.VrChatArguments(ignore));
+                        using (Process.Start(new ProcessStartInfo("explorer.exe", "\"" + lnk + "\"") { UseShellExecute = false })) { }
+                        opened.Add("vrchat");
+                        var until = DateTime.Now.AddSeconds(90);
+                        while (DateTime.Now < until && !stop && !Running("vrchat")) Wait(1000);
+                        bool up = Running("vrchat");
+                        Set(s, up ? "done" : "failed", (up ? "Open" : "It did not start within 90 seconds") + (ignore.Length > 0 ? ", ignoring " + ignore.Length + " tracker" + (ignore.Length == 1 ? "" : "s") + "." : "."));
+                        continue;
+                    }
+                }
+                if (stop)
+                {
+                    lock (gate) foreach (var s in Steps) if (s.State == "now" || s.State == "you" || s.State == "waiting") s.State = "skipped";
+                    var failed = Steps.FirstOrDefault(x => x.State == "failed");
+                    if (failed != null) Say("failed", failed.Note);
+                    else Say("stopped", "Stopped. Programs that were open stay open.");
+                }
+                else Say(Steps.Any(x => x.State == "failed") ? "failed" : "done", Steps.Any(x => x.State == "failed") ? "Done, but a step did not work: see it in the list." : "VRChat is starting. Have fun.");
+            }
+            catch (Exception e) { Say("failed", "The launch stopped: " + e.Message); }
+            rabbit.Event(VrLaunch.Tool, "launch-" + State, State == "failed" ? "warning" : "info", "Launch " + State + ": " + Said, null);
+        }
+    }
+
+    // The page's way in: plain HTTP on 127.0.0.1 only (a loopback socket, so nothing off this PC can reach it), and every
+    // request carries the code from the launcher's settings, which only a page opened from this PC can read. Requests
+    // from a web site (an Origin that is not a file or this PC) are refused before anything else.
+    sealed class LaunchServer : IDisposable
+    {
+        readonly RabbitState rabbit;
+        readonly TcpListener listener;
+        readonly Thread thread;
+        volatile bool closing;
+        LaunchRun run;
+        public readonly LaunchSettings Settings;
+        // Tests: what a launch would do, without starting anything.
+        public Func<LaunchRequest, LaunchRun> MakeRun;
+
+        public LaunchServer(RabbitState rabbit, LaunchSettings settings)
+        {
+            this.rabbit = rabbit; Settings = settings;
+            MakeRun = r => { var x = new LaunchRun(rabbit, settings, r); x.Start(); return x; };
+            listener = new TcpListener(IPAddress.Loopback, settings.Port);
+            listener.Start();
+            thread = new Thread(Accept) { IsBackground = true, Name = "vr-launch-server" };
+            thread.Start();
+        }
+
+        public int Port { get { return ((IPEndPoint)listener.LocalEndpoint).Port; } }
+
+        public static bool OriginOk(string origin)
+        {
+            if (string.IsNullOrEmpty(origin) || origin == "null") return true;
+            return Regex.IsMatch(origin, @"^http://(127\.0\.0\.1|localhost|\[::1\])(:\d{1,5})?$");
+        }
+
+        public static bool SameCode(string a, string b)
+        {
+            if (a == null || b == null || a.Length != b.Length) return false;
+            int diff = 0;
+            for (int i = 0; i < a.Length; i++) diff |= a[i] ^ b[i];
+            return diff == 0;
+        }
+
+        void Accept()
+        {
+            while (!closing)
+            {
+                TcpClient c;
+                try { c = listener.AcceptTcpClient(); } catch (Exception) { if (closing) return; continue; }
+                ThreadPool.QueueUserWorkItem(delegate { try { using (c) Serve(c); } catch (Exception) { } });
+            }
+        }
+
+        void Serve(TcpClient c)
+        {
+            c.ReceiveTimeout = 5000; c.SendTimeout = 5000;
+            var stream = c.GetStream();
+            var head = new StringBuilder();
+            var buf = new List<byte>();
+            int b;
+            // Headers, up to a blank line; 8 KB at most.
+            while ((b = stream.ReadByte()) >= 0 && buf.Count < 8192)
+            {
+                buf.Add((byte)b);
+                int n = buf.Count;
+                if (n >= 4 && buf[n - 4] == 13 && buf[n - 3] == 10 && buf[n - 2] == 13 && buf[n - 1] == 10) break;
+            }
+            string[] lines = Encoding.ASCII.GetString(buf.ToArray()).Split(new[] { "\r\n" }, StringSplitOptions.None);
+            string[] first = lines[0].Split(' ');
+            if (first.Length < 2) return;
+            var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string l in lines.Skip(1)) { int i = l.IndexOf(':'); if (i > 0) headers[l.Substring(0, i).Trim()] = l.Substring(i + 1).Trim(); }
+            string origin; headers.TryGetValue("Origin", out origin);
+            string method = first[0], path = first[1];
+            // The body is read before any answer, so a refusal is not cut off by a reset connection.
+            string lenText; int len = 0;
+            if (headers.TryGetValue("Content-Length", out lenText)) int.TryParse(lenText, out len);
+            if (len < 0 || len > 4096) { Reply(stream, 413, null, Error("Too big.")); return; }
+            var body = new byte[len];
+            int got = 0;
+            while (got < len) { int r = stream.Read(body, got, len - got); if (r <= 0) break; got += r; }
+            if (!OriginOk(origin)) { Reply(stream, 403, null, Error("Only a page opened from this PC can use the launcher.")); return; }
+            if (method == "OPTIONS") { Reply(stream, 204, origin, null); return; }
+            if (method != "POST") { Reply(stream, 405, origin, Error("POST only.")); return; }
+            IDictionary<string, object> req = null;
+            try { req = FarmEvent.Map(FarmEvent.Json().DeserializeObject(Encoding.UTF8.GetString(body, 0, got))); } catch (Exception) { }
+            if (req == null || !SameCode(FarmEvent.Str(req, "code"), Settings.Code)) { Reply(stream, 401, origin, Error("The launcher's code does not match. Open the page from this PC.")); return; }
+            Reply(stream, 200, origin, Handle(path, req));
+        }
+
+        public Dictionary<string, object> Handle(string path, IDictionary<string, object> req)
+        {
+            var current = run;
+            switch (path)
+            {
+                case "/status":
+                    return Status(current, null);
+                case "/launch":
+                    {
+                        if (!rabbit.On(VrLaunch.Tool)) return Status(current, VrLaunch.Tool + " is OFF.");
+                        if (current != null && (current.State == "running" || current.State == "ready")) return Status(current, "A launch is already running. Stop it first.");
+                        string problem;
+                        var r = LaunchRequest.From(req, out problem);
+                        if (r == null) return Status(current, problem);
+                        if (!VrLaunch.Installed(r.Mode)) return Status(current, (r.Mode == "space-override" ? "Space Override" : "Space Sync") + " is not installed.");
+                        run = MakeRun(r);
+                        return Status(run, null);
+                    }
+                case "/next":
+                    if (current != null) current.Next();
+                    return Status(current, null);
+                case "/vrchat":
+                    return Status(current, current != null && current.Go() ? null : "Not everything is on yet.");
+                case "/stop":
+                    if (current != null) current.Stop();
+                    return Status(current, null);
+            }
+            return Error("Not one of the launcher's requests.");
+        }
+
+        static Dictionary<string, object> Status(LaunchRun r, string problem)
+        {
+            var d = new Dictionary<string, object> { { "schema", "rift-rabbit-vr-launch-status-v1" }, { "ok", problem == null } };
+            if (problem != null) d["said"] = problem;
+            if (r != null) d["run"] = r.ToData();
+            return d;
+        }
+
+        static Dictionary<string, object> Error(string said) { return new Dictionary<string, object> { { "ok", false }, { "said", said } }; }
+
+        static void Reply(NetworkStream stream, int status, string origin, Dictionary<string, object> data)
+        {
+            byte[] body = data == null ? new byte[0] : Encoding.UTF8.GetBytes(FarmEvent.Json().Serialize(data));
+            var h = new StringBuilder();
+            h.Append("HTTP/1.1 " + status + " " + (status == 200 ? "OK" : status == 204 ? "No Content" : "Refused") + "\r\n");
+            h.Append("Content-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nConnection: close\r\n");
+            if (origin != null)
+            {
+                h.Append("Access-Control-Allow-Origin: " + origin + "\r\nVary: Origin\r\n");
+                h.Append("Access-Control-Allow-Methods: POST\r\nAccess-Control-Allow-Headers: Content-Type\r\nAccess-Control-Allow-Private-Network: true\r\n");
+            }
+            h.Append("Content-Length: " + body.Length + "\r\n\r\n");
+            byte[] hb = Encoding.ASCII.GetBytes(h.ToString());
+            stream.Write(hb, 0, hb.Length);
+            stream.Write(body, 0, body.Length);
+        }
+
+        public void Dispose()
+        {
+            closing = true;
+            try { listener.Stop(); } catch (Exception) { }
+            var r = run;
+            if (r != null) r.Stop();
+        }
+    }
+
+    // The launcher's checks, run by --self-test. Nothing here opens a program: launches go to a stand-in.
+    static class VrLaunchSelfTest
+    {
+        static string Post(int port, string origin, string path, string json)
+        {
+            using (var c = new TcpClient("127.0.0.1", port))
+            {
+                var s = c.GetStream();
+                byte[] body = Encoding.UTF8.GetBytes(json);
+                string head = "POST " + path + " HTTP/1.1\r\nHost: 127.0.0.1\r\n" + (origin != null ? "Origin: " + origin + "\r\n" : "") +
+                    "Content-Type: text/plain\r\nContent-Length: " + body.Length + "\r\n\r\n";
+                byte[] hb = Encoding.ASCII.GetBytes(head);
+                s.Write(hb, 0, hb.Length); s.Write(body, 0, body.Length);
+                using (var r = new StreamReader(s, Encoding.UTF8)) return r.ReadToEnd();
+            }
+        }
+
+        static string Q(string s) { return s.Replace('\'', '"'); }
+
+        public static void Run(Action<string, bool> check)
+        {
+            string problem;
+            Func<string, IDictionary<string, object>> map = j => FarmEvent.Map(FarmEvent.Json().DeserializeObject(Q(j)));
+            check("vr-launch: a launch takes only the page's own values",
+                LaunchRequest.From(map("{'headset':'quest-pro','mode':'native'}"), out problem) != null &&
+                LaunchRequest.From(map("{'headset':'quest-pro','mode':'calc.exe'}"), out problem) == null &&
+                LaunchRequest.From(map("{'headset':'quest-pro','mode':'native','double':'--x'}"), out problem) == null);
+
+            var pro = new LaunchRequest { Headset = "quest-pro", Mode = "native", Streamer = "virtual-desktop", Double = "" };
+            string ids = string.Join(" ", VrLaunch.Plan(pro).Select(s => s.Id));
+            check("vr-launch: Astra's order on the Quest Pro", ids ==
+                "addons open:virtual-desktop headset streamer-on-headset open:steamvr open:vrcft open:ovr-advanced-settings open:ovr-dynamic-resolution close:space-calibrator open:ovr-smooth-tracking wait vrchat");
+            var so = VrLaunch.Plan(new LaunchRequest { Headset = "quest-pro", Mode = "space-override", Streamer = "virtual-desktop", Double = "" }).Select(s => s.Id).ToList();
+            var ss = VrLaunch.Plan(new LaunchRequest { Headset = "quest-pro", Mode = "space-sync", Streamer = "virtual-desktop", Double = "" }).Select(s => s.Id).ToList();
+            check("vr-launch: modes x.2 and x.3 open their own overlay after SteamVR, never the other's",
+                so.Contains("open:space-override") && !so.Contains("open:space-sync") && ss.Contains("open:space-sync") && !ss.Contains("open:space-override") &&
+                so.IndexOf("open:space-override") > so.IndexOf("open:steamvr"));
+            string vrs = "{\n   \"driver_VirtualDesktop\" : {\n      \"disconnect_emulated_trackers\" : true\n   },\n   \"driver_spaceoverride\" : {\n      \"enable\" : false\n   },\n   \"steamvr\" : {\n      \"activateMultipleDrivers\" : true\n   }\n}\n";
+            string syncOn = VrLaunch.WithAddOns(vrs, "space-sync");
+            check("vr-launch: Space Sync's mode turns only Space Sync on, and leaves the rest of SteamVR's settings as they were",
+                VrLaunch.AddOnsMatch(syncOn, "space-sync") && !VrLaunch.AddOnsMatch(syncOn, "native") &&
+                syncOn.Contains("\"driver_VirtualDesktop\" : {\n      \"disconnect_emulated_trackers\" : true\n   }") && syncOn.Contains("\"driver_spaceoverride\" : {\n      \"enable\" : false"));
+            check("vr-launch: Native turns both add-ons off; an add-on SteamVR has no entry for counts as on",
+                VrLaunch.AddOnsMatch(VrLaunch.WithAddOns(syncOn, "native"), "native") && !VrLaunch.AddOnsMatch(vrs, "native"));
+            var q3 = new LaunchRequest { Headset = "quest-3", Mode = "space-calibrator", Streamer = "steam-link", Double = "both", Osc = true };
+            var q3ids = VrLaunch.Plan(q3).Select(s => s.Id).ToList();
+            check("vr-launch: the Quest 3 has no face tracking; Space Calibrator in x.1; Double Hip before OVR Smooth Tracking, OSCGoesBrrr after",
+                !q3ids.Contains("open:vrcft") && q3ids.Contains("open:space-calibrator") && q3ids[0] == "addons" && q3ids[1] == "open:steam" &&
+                q3ids.IndexOf("open:double-hip-tracker") < q3ids.IndexOf("open:ovr-smooth-tracking") && q3ids.IndexOf("open:oscgoesbrrr") == q3ids.IndexOf("wait") - 1);
+            q3.Woojer = true;
+            q3ids = VrLaunch.Plan(q3).Select(s => s.Id).ToList();
+            check("vr-launch: the Woojer vest comes after OSCGoesBrrr, through Voicemeeter, and only when switched on",
+                q3ids.IndexOf("woojer") == q3ids.IndexOf("open:oscgoesbrrr") + 1 && !ids.Contains("woojer") && VrPrograms.Find("voicemeeter") != null &&
+                LaunchRequest.From(map("{'headset':'quest-3','mode':'native','woojer':true}"), out problem).Woojer);
+            q3.Object = "dance-pole";
+            var q3steps = VrLaunch.Plan(q3);
+            check("vr-launch: Object Track VR comes after DoubleHip DoubleChest Tracker, names its object, and only its four values pass",
+                q3steps.FindIndex(s => s.Id == "object-track") == q3steps.FindIndex(s => s.Id == "open:double-hip-tracker") + 1 &&
+                q3steps.First(s => s.Id == "object-track").Name == "Object Track VR (Dance Pole)" && !ids.Contains("object-track") &&
+                LaunchRequest.From(map("{'headset':'quest-3','mode':'native','object':'small-hoop'}"), out problem) != null &&
+                LaunchRequest.From(map("{'headset':'quest-3','mode':'native','object':'calc'}"), out problem) == null);
+            check("vr-launch: every program a plan opens is watched and opens safely", LaunchRequest.Streamers.All(st =>
+                VrLaunch.Plan(new LaunchRequest { Headset = "quest-pro", Mode = "space-calibrator", Streamer = st, Double = "hip", Osc = true })
+                .Where(s => s.Id.StartsWith("open:") || s.Id.StartsWith("close:")).All(s => { var w = VrPrograms.Find(s.Id.Substring(s.Id.IndexOf(':') + 1)); return w != null && VrPrograms.OpensSafely(w.Open); })));
+
+            string temp = Path.Combine(Path.GetTempPath(), "rift-rabbit-vr-launch-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+            try
+            {
+                var s1 = LaunchSettings.Load(temp);
+                check("vr-launch: the settings are made once, with a long code and her notes' lists", File.Exists(Path.Combine(temp, LaunchSettings.FileName)) &&
+                    s1.Code.Length == 48 && LaunchSettings.Load(temp).Code == s1.Code && s1.Ignore["both"].Length == 4 && s1.HeadTracker == "");
+                check("vr-launch: VRChat ignores the Double choice's trackers", string.Join(",", s1.IgnoreFor(new LaunchRequest { Mode = "space-calibrator", Double = "hip" })) == "LHR-467E1FA2,LHR-91D63DB2" &&
+                    s1.IgnoreFor(new LaunchRequest { Mode = "native", Double = "" }).Length == 0);
+                File.WriteAllText(Path.Combine(temp, LaunchSettings.FileName), Q("{'code':'" + s1.Code + "','head_tracker':'LHR-6963FCE5','hip_pair':['LHR-467E1FA2','LHR-91D63DB2'],'ignore_trackers':{'chest':['LHR-6BA0C57A','LHR-1 & calc']}}"));
+                var s2 = LaunchSettings.Load(temp);
+                check("vr-launch: the head tracker is ignored in the modes with one, never in Native",
+                    s2.IgnoreFor(new LaunchRequest { Mode = "space-calibrator", Double = "" }).SequenceEqual(new[] { "LHR-6963FCE5" }) &&
+                    s2.IgnoreFor(new LaunchRequest { Mode = "native", Double = "" }).Length == 0);
+                check("vr-launch: a hand edit can only name serials", s2.Ignore["chest"].SequenceEqual(new[] { "LHR-6BA0C57A" }) && s2.HipPair.Length == 2 && s2.ChestPair.Length == 0);
+                check("vr-launch: VRChat's command line", VrLaunch.VrChatArguments(new[] { "LHR-467E1FA2", "LHR-91D63DB2" }) == "-applaunch 438100 --ignore-trackers=LHR-467E1FA2,LHR-91D63DB2" &&
+                    VrLaunch.VrChatArguments(new string[0]) == "-applaunch 438100");
+                var need = VrLaunch.NeededDevices(new LaunchRequest { Headset = "quest-pro", Mode = "space-calibrator", Double = "both" }, s2).Select(k => k.Key).ToList();
+                check("vr-launch: Start VRChat waits for the headset, the controllers, the head tracker and Double Hip's pair (" + string.Join(",", need) + ")",
+                    need.SequenceEqual(new[] { "quest-pro", "index-controller-left", "index-controller-right", "vive-tracker-08", "vive-tracker-09", "vive-tracker-03" }));
+
+                string cfg = Path.Combine(temp, "user_config.json");
+                File.WriteAllText(cfg, Q("{'useHip':true,'useChest':true,'chestSerialA':'LHR-28D88802','chestSerialB':'LHR-91D63DB2','extraSerialA':'LHR-467E1FA2','extraSerialB':'LHR-6BA0C57A','freezeWhenBothLost':false,'locale':'en'}"));
+                string said = VrLaunch.SetDoubleHip(cfg, "chest", s1);
+                var after = map(File.ReadAllText(cfg));
+                check("vr-launch: Double Chest turns Hip off and Chest on, and keeps everything else (" + said + ")",
+                    Equals(after["useHip"], false) && Equals(after["useChest"], true) && (string)after["chestSerialA"] == "LHR-28D88802" && (string)after["locale"] == "en" &&
+                    File.Exists(Path.Combine(temp, "user_config.before-rift-rabbit-20261024.json")));
+                VrLaunch.SetDoubleHip(cfg, "both", s2);
+                after = map(File.ReadAllText(cfg));
+                check("vr-launch: known pairs are written; its own settings were kept once", Equals(after["useHip"], true) && (string)after["extraSerialB"] == "LHR-91D63DB2" && Equals(after["useHipAutomatic"], false) &&
+                    File.ReadAllText(Path.Combine(temp, "user_config.before-rift-rabbit-20261024.json")).Contains(Q("'useChest':true,")));
+
+                string page = Path.Combine(temp, VrLaunch.PageDataName);
+                VrLaunch.WritePageData(page, s1, true);
+                string pageText = File.ReadAllText(page);
+                check("vr-launch: the pages' file says where and how to reach it", pageText.StartsWith("window.riftRabbitLaunch = {") && pageText.Contains(Q("'url':'http://127.0.0.1:47621/'")) && pageText.Contains(s1.Code));
+                VrLaunch.WritePageData(page, s1, false);
+                check("vr-launch: OFF, the pages' file has no code", !File.ReadAllText(page).Contains(s1.Code));
+                check("vr-launch: Native and Space Calibrator need nothing installed", VrLaunch.Installed("native") && VrLaunch.Installed("space-calibrator"));
+
+                string lnk = Path.Combine(temp, "test.lnk");
+                VrLaunch.MakeShortcut(lnk, Path.Combine(Environment.SystemDirectory, "notepad.exe"), "-x");
+                check("vr-launch: a shortcut can be made", File.Exists(lnk));
+
+                check("vr-launch: only a file page or this PC may ask", LaunchServer.OriginOk(null) && LaunchServer.OriginOk("null") && LaunchServer.OriginOk("http://127.0.0.1:8123") &&
+                    !LaunchServer.OriginOk("https://example.com") && !LaunchServer.OriginOk("http://127.0.0.1.example.com") && !LaunchServer.OriginOk("http://localhost:80/x"));
+                check("vr-launch: codes compare whole", LaunchServer.SameCode("abc", "abc") && !LaunchServer.SameCode("abc", "abd") && !LaunchServer.SameCode("abc", "ab") && !LaunchServer.SameCode(null, "a"));
+
+                var rabbit = new RabbitState(temp, temp);
+                s1.Port = 0;
+                LaunchRun made = null;
+                using (var server = new LaunchServer(rabbit, s1))
+                {
+                    server.MakeRun = r => made = new LaunchRun(rabbit, s1, r);
+                    int port = server.Port;
+                    string code = Q("'code':'" + s1.Code + "'");
+                    string launchBody = "{" + code + Q(",'headset':'quest-pro','mode':'space-calibrator','streamer':'virtual-desktop','double':'hip','osc':true}");
+                    check("vr-launch: it listens on 127.0.0.1 only", port > 0);
+                    check("vr-launch: a web site is refused", Post(port, "https://example.com", "/launch", launchBody).StartsWith("HTTP/1.1 403") && made == null);
+                    check("vr-launch: a wrong code is refused", Post(port, "null", "/launch", Q("{'code':'nope','headset':'quest-pro','mode':'native'}")).StartsWith("HTTP/1.1 401") && made == null);
+                    string ok = Post(port, "null", "/launch", launchBody);
+                    check("vr-launch: the page's launch starts one, and says so", ok.StartsWith("HTTP/1.1 200") && ok.Contains("Access-Control-Allow-Origin: null") && made != null && made.Request.Double == "hip" && ok.Contains("open:double-hip-tracker"));
+                    check("vr-launch: one launch at a time", Post(port, "null", "/launch", launchBody).Contains("already running"));
+                    check("vr-launch: Start VRChat waits until everything is on", Post(port, "null", "/vrchat", "{" + code + "}").Contains("Not everything is on yet"));
+                    check("vr-launch: a page can read the steps", Post(port, "http://127.0.0.1:8123", "/status", "{" + code + "}").Contains(Q("'steps':")));
+                    try { new TcpClient("::1", port).Close(); check("vr-launch: nothing but 127.0.0.1 answers", false); }
+                    catch (Exception) { check("vr-launch: nothing but 127.0.0.1 answers", true); }
+                }
+            }
+            catch (Exception e) { check("vr-launch: the checks ran (" + e.Message + ")", false); }
+            finally { try { Directory.Delete(temp, true); } catch (Exception) { } }
+        }
+    }
+}
