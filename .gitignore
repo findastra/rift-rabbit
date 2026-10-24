@@ -1,3 +1,7 @@
 node_modules/
 .env
 *.log
+# Built on the PC by the build script; never committed.
+bin/
+*.exe
+*.pdb
