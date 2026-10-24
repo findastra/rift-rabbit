@@ -30,8 +30,9 @@ page cannot start programs, so each **Launch** button asks Rift Rabbit's launche
 2. The streamer (Virtual Desktop, Meta Horizon Link, or Steam for Steam Link).
 3. The headset and the streamer on it are her side: the step waits until SteamVR sees the headset, or until she presses
    **Next**.
-4. SteamVR, then the programs SteamVR used to auto-start (their auto-start is off, so the launcher owns them):
-   VRCFaceTracking (Quest Pro only), OVR Advanced Settings, OVR Dynamic Resolution, and the mode's own program: Space
+4. SteamVR, then the programs SteamVR also auto-starts (she keeps that on: "fix the steam auto launch settings", so
+   the launcher finds them already open and opens any that are not): VRCFaceTracking (Quest Pro only), OVR Advanced
+   Settings, OVR Dynamic Resolution, and the mode's own program: Space
    Calibrator in x.1 (closed the way its X does in the other modes), Space Override's overlay in x.2, Space Sync's in
    x.3.
 5. DoubleHip DoubleChest Tracker (its Enable Hip / Enable Chest set for her choice first), Object Track VR (not out yet,
