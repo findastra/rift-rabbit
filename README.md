@@ -45,9 +45,9 @@ page cannot start programs, so each **Launch** button asks Rift Rabbit's launche
 5. DoubleHip DoubleChest Tracker (its Enable Hip / Enable Chest set for her choice first), Object Track VR (not out yet,
    so its step only says so), OVR Smooth Tracking, OSCGoesBrrr, and for the Woojer vest, Voicemeeter (the vest is a
    Bluetooth audio device that Voicemeeter plays to; whether it is connected is not checked).
-6. A light for each thing **Start VRChat** waits for: the headset, both Index controllers, the head tracker [H] in the
-   modes with one, DoubleHip DoubleChest Tracker's trackers once their pairs are known, and every program the launch
-   opened. She presses it once the trackers look smooth.
+6. A light for each thing **Start VRChat** waits for: the headset, the Index controllers on her hands (none for hand
+   tracking), every tracker on one of her spots (24 Head only in the modes with one, an object's only when it is
+   chosen), and every program the launch opened. She presses it once the trackers look smooth.
 7. VRChat, through a shortcut to Steam (`-applaunch 438100`); Steam adds its launch options from step 0.
 
 Every program opens through explorer.exe. The launcher knows her VR programs and reads which VR devices SteamVR has on
@@ -57,11 +57,19 @@ from SteamVR's own log (`Steam\logs\vrserver.txt`), read only.
   from any web site, and needs the code from its settings file. It takes only the page's fixed values (headset, mode,
   streamer, Double choice, Object Track VR object, OSCGoesBrrr, Woojer vest), never a program name or a command.
 - **Its settings**, never committed: `Documents\Astra's PetOS Data\rift-rabbit\vr-launch-settings-20261024.json`: the
-  port (47621), the code, VRChat's ignore lists for each Double choice (the pairs her DoubleHip DoubleChest Tracker uses), the head tracker
-  ([H], LHR-6963FCE5), DoubleHip DoubleChest Tracker's hip and chest pairs (empty until she says which: then only Hip /
-  Chest are set and its pairs are left alone), and where DoubleHip DoubleChest Tracker is.
-- **The page's file**, `vr-launch-page-data.js` in the same folder, says where to ask, the code, and which modes are
-  installed. Without it (another PC, the public site, the launcher stopped) the buttons stay off.
+  port (47621), the code, which device is on each of her 27 spots, the two Double pairs, and where DoubleHip DoubleChest
+  Tracker is. The spots are hers (2026-10-25 drawing: 1 Right Foot [RF] to 27 Little Dance Hoop [LDH]); she sets them
+  with tracker-strapper on Rift Rabbit's page opened on this PC, which sends them to `/spots`. Only her spots, only a
+  device that fits each (23 Face a headset, 21 and 22 an Index controller or the headset's hand tracking, the rest a
+  Vive Tracker 3.0), each tracker once, Double Hip's pair any two of the eight waist spots (usually 7 FW + 8 BW) and
+  Double Chest's any two of the four chest spots (usually 17 FC + 18 BC). From them come the head tracker, both pairs
+  and VRChat's ignore lists. A file from before the spots gets today's spots once.
+- **A launch needs its spots**: the headset on 23 Face, a tracker on 24 Head for x.1 to x.3, both trackers of each
+  Double pair it uses, and the tracker on the Object Track VR object chosen. Otherwise it is refused and says what is
+  missing.
+- **The page's file**, `vr-launch-page-data.js` in the same folder, says where to ask, the code, which modes are
+  installed, and the spots. Without it (another PC, the public site, the launcher stopped) the buttons stay off and the
+  page shows today's spots.
 - What it changes outside its own folders, and only for a launch: VRChat's `LaunchOptions` in Steam's
   `userdata\<account>\config\localconfig.vdf` (a copy is kept once as `steam-localconfig-before-rift-rabbit-20261025.vdf`
   in its settings folder; nothing else in the file changes), the two add-ons' `enable` values in SteamVR's
@@ -91,7 +99,7 @@ bin\rift-rabbit-20261024.exe --startup
 | `--quit` | stop the running launcher |
 | `--tool wonderland-launchpad-v1.0-vr-launch-v1.0 on\|off` | switch the launcher ON or OFF |
 | `bin\rift-rabbit-check-20261024.exe --programs` | which of her VR programs are open and which VR devices SteamVR has on |
-| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (46) |
+| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (53) |
 
 ## Next steps
 
