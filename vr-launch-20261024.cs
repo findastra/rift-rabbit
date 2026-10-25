@@ -71,13 +71,14 @@ namespace AstrasPetOs.RiftRabbit
         public const string FileName = "vr-launch-settings-20261024.json";
         public int Port = 47621;
         public string Code;
-        // VRChat's --ignore-trackers list for each Double Hip / Double Chest choice, by serial. From her ignore-trackers
-        // notes (vr-gaming on her desktop): Both W, M, C, [ ]; Double Hip W, M; Double Chest C, [ ].
+        // VRChat's --ignore-trackers list for each Double Hip / Double Chest choice, by serial: DoubleHip DoubleChest
+        // Tracker joins each pair into one tracker for VRChat, so VRChat ignores both of that pair. The pairs are the ones
+        // her DoubleHip DoubleChest Tracker uses (her screenshot, 2026-10-25): Hip W, C; Chest [ ], M; Both all four.
         public Dictionary<string, string[]> Ignore = new Dictionary<string, string[]> {
             { "", new string[0] },
-            { "hip", new[] { "LHR-467E1FA2", "LHR-91D63DB2" } },
-            { "chest", new[] { "LHR-6BA0C57A", "LHR-28D88802" } },
-            { "both", new[] { "LHR-467E1FA2", "LHR-91D63DB2", "LHR-6BA0C57A", "LHR-28D88802" } },
+            { "hip", new[] { "LHR-467E1FA2", "LHR-6BA0C57A" } },
+            { "chest", new[] { "LHR-28D88802", "LHR-91D63DB2" } },
+            { "both", new[] { "LHR-467E1FA2", "LHR-6BA0C57A", "LHR-28D88802", "LHR-91D63DB2" } },
         };
         // The tracker on the headset in modes x.1 to x.3, and DoubleHip DoubleChest Tracker's two pairs. Empty until Astra says which
         // (her answers to questions 3 and 4): with no pairs, the launcher sets only Hip / Chest and leaves the pairs as
@@ -212,7 +213,9 @@ namespace AstrasPetOs.RiftRabbit
             var steps = new List<LaunchStep>();
             Action<string, string> add = (id, name) => steps.Add(new LaunchStep { Id = id, Name = name });
             string streamer = StreamerProgram(r.Streamer);
-            // First, before anything can start SteamVR (Virtual Desktop starts it from the headset): only this mode's
+            // First, while Steam can still be closed: VRChat's launch options in Steam hold this launch's ignore list.
+            add("steam-options", "VRChat's launch options in Steam");
+            // Then, before anything can start SteamVR (Virtual Desktop starts it from the headset): only this mode's
             // add-on is on.
             add("addons", "SteamVR add-ons for this mode");
             add("open:" + streamer, VrPrograms.Find(streamer).Name);
@@ -306,11 +309,163 @@ namespace AstrasPetOs.RiftRabbit
             return need;
         }
 
-        // VRChat with its trackers ignored: a shortcut to Steam's VRChat with --ignore-trackers, opened through
-        // explorer.exe like every other program (her rule), so nothing runs from inside this program's process tree.
-        public static string VrChatArguments(string[] ignore)
+        // VRChat: a shortcut to Steam's VRChat, opened through explorer.exe like every other program (her rule), so nothing
+        // runs from inside this program's process tree. Its trackers to ignore are in its launch options in Steam, which
+        // Steam adds by itself; passing them here too would give VRChat the list twice.
+        public static string VrChatArguments() { return "-applaunch " + VrChatApp; }
+
+        // VRChat's launch options live in Steam (Properties > General > Launch Options), in
+        // Steam\userdata\<account>\config\localconfig.vdf. Astra, 2026-10-25: "the codes here go into the steam vrchat
+        // launch properties entry here, that is what this process has to change", and "close Steam, write, reopen":
+        // Steam writes that file over when it closes, so the launcher closes Steam first, only when the list must change.
+        public const string VrChatApp = "438100";
+        static readonly string[] VrChatPath = { "UserLocalConfigStore", "Software", "Valve", "Steam", "apps", VrChatApp };
+
+        // The signed-in account's file (Steam's ActiveUser), else the newest one.
+        public static string SteamUserConfig()
         {
-            return "-applaunch 438100" + (ignore.Length > 0 ? " --ignore-trackers=" + string.Join(",", ignore) : "");
+            string root = Path.Combine(Path.GetDirectoryName(SteamExe()), "userdata");
+            try
+            {
+                using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam\ActiveProcess"))
+                {
+                    object id = key == null ? null : key.GetValue("ActiveUser");
+                    if (id is int && (int)id != 0)
+                    {
+                        string f = Path.Combine(root, unchecked((uint)(int)id).ToString(), "config", "localconfig.vdf");
+                        if (File.Exists(f)) return f;
+                    }
+                }
+            }
+            catch (Exception) { }
+            if (!Directory.Exists(root)) return null;
+            return Directory.GetDirectories(root).Select(d => Path.Combine(d, "config", "localconfig.vdf")).Where(File.Exists)
+                .OrderByDescending(f => File.GetLastWriteTimeUtc(f)).FirstOrDefault();
+        }
+
+        // Steam's text settings format: "key" "value" pairs and "key" { ... } blocks, with \" and \\ inside strings.
+        sealed class VdfToken { public int Start, End; public char Kind; public string Text; }
+
+        static List<VdfToken> VdfTokens(string t)
+        {
+            var list = new List<VdfToken>();
+            for (int i = 0; i < t.Length; i++)
+            {
+                char c = t[i];
+                if (c == '{' || c == '}') list.Add(new VdfToken { Start = i, End = i + 1, Kind = c });
+                else if (c == '/' && i + 1 < t.Length && t[i + 1] == '/') { while (i < t.Length && t[i] != '\n') i++; }
+                else if (c == '"')
+                {
+                    var sb = new StringBuilder();
+                    int j = i + 1;
+                    for (; j < t.Length && t[j] != '"'; j++)
+                    {
+                        if (t[j] == '\\' && j + 1 < t.Length) { j++; sb.Append(t[j] == 'n' ? '\n' : t[j] == 't' ? '\t' : t[j]); }
+                        else sb.Append(t[j]);
+                    }
+                    if (j >= t.Length) throw new InvalidDataException("Steam's settings file ends inside a string.");
+                    list.Add(new VdfToken { Start = i, End = j + 1, Kind = '"', Text = sb.ToString() });
+                    i = j;
+                }
+            }
+            return list;
+        }
+
+        // VRChat's block: the token indexes of its { and its }; -1, -1 when Steam has none.
+        static int[] AppBlock(List<VdfToken> tk)
+        {
+            var path = new List<string>();
+            var opens = new List<int>();
+            int open = -1;
+            for (int i = 0; i < tk.Count; i++)
+            {
+                if (tk[i].Kind == '"')
+                {
+                    if (i + 1 >= tk.Count || tk[i + 1].Kind == '}') throw new InvalidDataException("Steam's settings file has a name without a value.");
+                    i++;
+                    if (tk[i].Kind != '{') continue;   // a "key" "value" pair
+                    path.Add(tk[i - 1].Text); opens.Add(i);
+                    if (open < 0 && path.Count == VrChatPath.Length && path.Select((p, n) => string.Equals(p, VrChatPath[n], StringComparison.OrdinalIgnoreCase)).All(x => x)) open = i;
+                }
+                else if (tk[i].Kind == '}')
+                {
+                    if (path.Count == 0) throw new InvalidDataException("Steam's settings file has an extra }.");
+                    if (opens[opens.Count - 1] == open) return new[] { open, i };
+                    path.RemoveAt(path.Count - 1); opens.RemoveAt(opens.Count - 1);
+                }
+                else throw new InvalidDataException("Steam's settings file has a { without a name.");
+            }
+            if (open >= 0) throw new InvalidDataException("Steam's settings file ends inside VRChat's block.");
+            return new[] { -1, -1 };
+        }
+
+        // The token index of the LaunchOptions value directly in VRChat's block, or -1.
+        static int LaunchOptionsValue(List<VdfToken> tk, int[] block)
+        {
+            int depth = 0;
+            for (int i = block[0] + 1; i < block[1]; i++)
+            {
+                if (tk[i].Kind == '{') depth++;
+                else if (tk[i].Kind == '}') depth--;
+                else if (depth == 0 && tk[i + 1].Kind == '"')
+                {
+                    if (string.Equals(tk[i].Text, "LaunchOptions", StringComparison.OrdinalIgnoreCase)) return i + 1;
+                    i++;
+                }
+            }
+            return -1;
+        }
+
+        // VRChat's launch options as Steam has them: "" when the box is empty, null when Steam has no settings for VRChat.
+        public static string LaunchOptions(string vdf)
+        {
+            var tk = VdfTokens(vdf);
+            var b = AppBlock(tk);
+            if (b[0] < 0) return null;
+            int v = LaunchOptionsValue(tk, b);
+            return v < 0 ? "" : tk[v].Text;
+        }
+
+        // The file's text with VRChat's launch options set; every other byte stays as Steam wrote it.
+        public static string WithLaunchOptions(string vdf, string options)
+        {
+            var tk = VdfTokens(vdf);
+            var b = AppBlock(tk);
+            if (b[0] < 0) throw new InvalidDataException("Steam has no settings for VRChat yet: start VRChat once from Steam.");
+            string quoted = "\"" + options.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+            int v = LaunchOptionsValue(tk, b);
+            string text;
+            if (v >= 0) text = vdf.Substring(0, tk[v].Start) + quoted + vdf.Substring(tk[v].End);
+            else
+            {
+                // A new line just above VRChat's }, one tab deeper than it.
+                int close = tk[b[1]].Start, lineStart = vdf.LastIndexOf('\n', Math.Max(0, close - 1)) + 1;
+                string indent = vdf.Substring(lineStart, close - lineStart);
+                if (indent.Trim().Length > 0) { lineStart = close; indent = ""; }
+                text = vdf.Substring(0, lineStart) + indent + "\t\"LaunchOptions\"\t\t" + quoted + "\n" + vdf.Substring(lineStart);
+            }
+            if (LaunchOptions(text) != options) throw new InvalidDataException("VRChat's launch options would not read back.");
+            return text;
+        }
+
+        // Her other launch options stay; only the --ignore-trackers list is the launcher's.
+        static readonly Regex IgnoreOption = new Regex(@"(^|\s)--ignore-trackers=\S*");
+        public static string WithIgnoreTrackers(string options, string[] ignore)
+        {
+            string rest = IgnoreOption.Replace(options ?? "", "").Trim();
+            string list = ignore.Length > 0 ? "--ignore-trackers=" + string.Join(",", ignore) : "";
+            return rest.Length == 0 ? list : list.Length == 0 ? rest : rest + " " + list;
+        }
+
+        // "[W] [C] [H]": her stickers for the serials, from the device table.
+        public static string Stickers(string[] serials)
+        {
+            return string.Join(" ", serials.Select(x =>
+            {
+                var row = VrDevices.Table.Select(t => t.Split('|')).FirstOrDefault(f => f[2] == x);
+                var m = row == null ? null : Regex.Match(row[1], @"\[[^\]]*\]$");
+                return m != null && m.Success ? m.Value : x;
+            }));
         }
 
         public static string SteamExe()
@@ -459,6 +614,40 @@ namespace AstrasPetOs.RiftRabbit
                 {
                     if (stop) break;
                     Set(s, "now", null);
+                    if (s.Id == "steam-options")
+                    {
+                        string[] ignore = settings.IgnoreFor(Request);
+                        string which = ignore.Length == 0 ? "No trackers ignored" : "Ignoring " + VrLaunch.Stickers(ignore);
+                        string file = VrLaunch.SteamUserConfig();
+                        string now = file == null ? null : VrLaunch.LaunchOptions(File.ReadAllText(file));
+                        if (now == null) { Set(s, "failed", file == null ? "Steam's settings for your account were not found." : "Steam has no settings for VRChat yet: start VRChat once from Steam."); stop = true; continue; }
+                        if (now == VrLaunch.WithIgnoreTrackers(now, ignore)) { Set(s, "done", which + " (already set)."); continue; }
+                        if (Running("steamvr") || Running("vrchat"))
+                        {
+                            // Closing Steam would close them too.
+                            Set(s, "failed", "Steam has to close to change VRChat's launch options, and SteamVR or VRChat is open. Close them, then press Launch again (" + which + ").");
+                            stop = true;
+                            continue;
+                        }
+                        bool wasOpen = Running("steam");
+                        if (wasOpen)
+                        {
+                            Set(s, "now", "Closing Steam to change VRChat's launch options.");
+                            using (Process.Start(new ProcessStartInfo("explorer.exe", "steam://exit") { UseShellExecute = false })) { }
+                            var until = DateTime.Now.AddSeconds(VrLaunch.OpenWaitSeconds);
+                            while (DateTime.Now < until && !stop && Running("steam")) Wait(1000);
+                            if (Running("steam")) { Set(s, "failed", "Steam did not close within " + VrLaunch.OpenWaitSeconds + " seconds, so VRChat's launch options were not changed."); stop = true; continue; }
+                        }
+                        string text = File.ReadAllText(file);   // as Steam left it when it closed
+                        string backup = Path.Combine(LaunchSettings.Folder(), "steam-localconfig-before-rift-rabbit-20261025.vdf");
+                        if (!File.Exists(backup)) File.Copy(file, backup);
+                        string tmp = file + ".rift-rabbit.tmp";
+                        File.WriteAllText(tmp, VrLaunch.WithLaunchOptions(text, VrLaunch.WithIgnoreTrackers(VrLaunch.LaunchOptions(text), ignore)), new UTF8Encoding(false));
+                        File.Replace(tmp, file, null);
+                        string back = wasOpen ? " Steam: " + (Open("steam") ?? "it did not start again within " + VrLaunch.OpenWaitSeconds + " seconds.") : "";
+                        Set(s, "done", which + "." + back);
+                        continue;
+                    }
                     if (s.Id == "addons")
                     {
                         string file = VrLaunch.SteamVrSettings();
@@ -564,13 +753,13 @@ namespace AstrasPetOs.RiftRabbit
                         Say("running", "");
                         string[] ignore = settings.IgnoreFor(Request);
                         string lnk = Path.Combine(LaunchSettings.Folder(), "vr-launch", "vrchat-20261024.lnk");
-                        VrLaunch.MakeShortcut(lnk, VrLaunch.SteamExe(), VrLaunch.VrChatArguments(ignore));
+                        VrLaunch.MakeShortcut(lnk, VrLaunch.SteamExe(), VrLaunch.VrChatArguments());
                         using (Process.Start(new ProcessStartInfo("explorer.exe", "\"" + lnk + "\"") { UseShellExecute = false })) { }
                         opened.Add("vrchat");
                         var until = DateTime.Now.AddSeconds(90);
                         while (DateTime.Now < until && !stop && !Running("vrchat")) Wait(1000);
                         bool up = Running("vrchat");
-                        Set(s, up ? "done" : "failed", (up ? "Open" : "It did not start within 90 seconds") + (ignore.Length > 0 ? ", ignoring " + ignore.Length + " tracker" + (ignore.Length == 1 ? "" : "s") + "." : "."));
+                        Set(s, up ? "done" : "failed", (up ? "Open" : "It did not start within 90 seconds") + (ignore.Length > 0 ? ", ignoring " + ignore.Length + " tracker" + (ignore.Length == 1 ? "" : "s") + " (its launch options in Steam)." : "."));
                         continue;
                     }
                 }
@@ -772,12 +961,30 @@ namespace AstrasPetOs.RiftRabbit
             var pro = new LaunchRequest { Headset = "quest-pro", Mode = "native", Streamer = "virtual-desktop", Double = "" };
             string ids = string.Join(" ", VrLaunch.Plan(pro).Select(s => s.Id));
             check("vr-launch: Astra's order on the Quest Pro", ids ==
-                "addons open:virtual-desktop headset streamer-on-headset open:steamvr open:vrcft open:ovr-advanced-settings open:ovr-dynamic-resolution close:space-calibrator open:ovr-smooth-tracking wait vrchat");
+                "steam-options addons open:virtual-desktop headset streamer-on-headset open:steamvr open:vrcft open:ovr-advanced-settings open:ovr-dynamic-resolution close:space-calibrator open:ovr-smooth-tracking wait vrchat");
             var so = VrLaunch.Plan(new LaunchRequest { Headset = "quest-pro", Mode = "space-override", Streamer = "virtual-desktop", Double = "" }).Select(s => s.Id).ToList();
             var ss = VrLaunch.Plan(new LaunchRequest { Headset = "quest-pro", Mode = "space-sync", Streamer = "virtual-desktop", Double = "" }).Select(s => s.Id).ToList();
             check("vr-launch: modes x.2 and x.3 open their own overlay after SteamVR, never the other's",
                 so.Contains("open:space-override") && !so.Contains("open:space-sync") && ss.Contains("open:space-sync") && !ss.Contains("open:space-override") &&
                 so.IndexOf("open:space-override") > so.IndexOf("open:steamvr"));
+            string vdf = "\"UserLocalConfigStore\"\n{\n\t\"Software\"\n\t{\n\t\t\"Valve\"\n\t\t{\n\t\t\t\"Steam\"\n\t\t\t{\n\t\t\t\t\"apps\"\n\t\t\t\t{\n" +
+                "\t\t\t\t\t\"250820\"\n\t\t\t\t\t{\n\t\t\t\t\t\t\"LaunchOptions\"\t\t\"-keep\"\n\t\t\t\t\t}\n" +
+                "\t\t\t\t\t\"438100\"\n\t\t\t\t\t{\n\t\t\t\t\t\t\"cloud\"\n\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\"LaunchOptions\"\t\t\"nested\"\n\t\t\t\t\t\t}\n\t\t\t\t\t\t\"Playtime\"\t\t\"6\"\n\t\t\t\t\t}\n" +
+                "\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\t\"apps\"\n\t{\n\t\t\"438100\"\n\t\t{\n\t\t\t\"LaunchOptions\"\t\t\"wrong place\"\n\t\t}\n\t}\n}\n";
+            string added = VrLaunch.WithLaunchOptions(vdf, "--ignore-trackers=LHR-467E1FA2,LHR-6BA0C57A");
+            check("vr-launch: an empty launch options box gets a line in VRChat's own block, and nothing else moves",
+                VrLaunch.LaunchOptions(vdf) == "" && VrLaunch.LaunchOptions(added) == "--ignore-trackers=LHR-467E1FA2,LHR-6BA0C57A" &&
+                added == vdf.Replace("\t\t\t\t\t\t\"Playtime\"\t\t\"6\"\n", "\t\t\t\t\t\t\"Playtime\"\t\t\"6\"\n\t\t\t\t\t\t\"LaunchOptions\"\t\t\"--ignore-trackers=LHR-467E1FA2,LHR-6BA0C57A\"\n"));
+            string changed = VrLaunch.WithLaunchOptions(added, "-a \"b\\c\"");
+            check("vr-launch: a set launch options box is replaced in place, with Steam's escapes",
+                VrLaunch.LaunchOptions(changed) == "-a \"b\\c\"" && changed.Contains("\"LaunchOptions\"\t\t\"-a \\\"b\\\\c\\\"\"") && changed.Contains("\"-keep\"") && changed.Contains("\"nested\"") && changed.Contains("\"wrong place\""));
+            check("vr-launch: no settings for VRChat reads as none",
+                VrLaunch.LaunchOptions("\"UserLocalConfigStore\"\n{\n\t\"Software\"\n\t{\n\t}\n}\n") == null);
+            check("vr-launch: only the --ignore-trackers list is the launcher's; her other launch options stay",
+                VrLaunch.WithIgnoreTrackers("--ignore-trackers=LHR-467E1FA2,LHR-6BA0C57A,LHR-28D88802,LHR-91D63DB2", new[] { "LHR-28D88802", "LHR-91D63DB2" }) == "--ignore-trackers=LHR-28D88802,LHR-91D63DB2" &&
+                VrLaunch.WithIgnoreTrackers("--fps=144 --ignore-trackers=LHR-467E1FA2 --no-vr", new string[0]) == "--fps=144 --no-vr" &&
+                VrLaunch.WithIgnoreTrackers("", new[] { "LHR-6963FCE5" }) == "--ignore-trackers=LHR-6963FCE5" &&
+                VrLaunch.Stickers(new[] { "LHR-467E1FA2", "LHR-6963FCE5" }) == "[W] [H]");
             string vrs = "{\n   \"driver_VirtualDesktop\" : {\n      \"disconnect_emulated_trackers\" : true\n   },\n   \"driver_spaceoverride\" : {\n      \"enable\" : false\n   },\n   \"steamvr\" : {\n      \"activateMultipleDrivers\" : true\n   }\n}\n";
             string syncOn = VrLaunch.WithAddOns(vrs, "space-sync");
             check("vr-launch: Space Sync's mode turns only Space Sync on, and leaves the rest of SteamVR's settings as they were",
@@ -788,7 +995,7 @@ namespace AstrasPetOs.RiftRabbit
             var q3 = new LaunchRequest { Headset = "quest-3", Mode = "space-calibrator", Streamer = "steam-link", Double = "both", Osc = true };
             var q3ids = VrLaunch.Plan(q3).Select(s => s.Id).ToList();
             check("vr-launch: the Quest 3 has no face tracking; Space Calibrator in x.1; Double Hip before OVR Smooth Tracking, OSCGoesBrrr after",
-                !q3ids.Contains("open:vrcft") && q3ids.Contains("open:space-calibrator") && q3ids[0] == "addons" && q3ids[1] == "open:steam" &&
+                !q3ids.Contains("open:vrcft") && q3ids.Contains("open:space-calibrator") && q3ids[0] == "steam-options" && q3ids[1] == "addons" && q3ids[2] == "open:steam" &&
                 q3ids.IndexOf("open:double-hip-tracker") < q3ids.IndexOf("open:ovr-smooth-tracking") && q3ids.IndexOf("open:oscgoesbrrr") == q3ids.IndexOf("wait") - 1);
             q3.Woojer = true;
             q3ids = VrLaunch.Plan(q3).Select(s => s.Id).ToList();
@@ -812,7 +1019,8 @@ namespace AstrasPetOs.RiftRabbit
                 var s1 = LaunchSettings.Load(temp);
                 check("vr-launch: the settings are made once, with a long code and her notes' lists", File.Exists(Path.Combine(temp, LaunchSettings.FileName)) &&
                     s1.Code.Length == 48 && LaunchSettings.Load(temp).Code == s1.Code && s1.Ignore["both"].Length == 4 && s1.HeadTracker == "");
-                check("vr-launch: VRChat ignores the Double choice's trackers", string.Join(",", s1.IgnoreFor(new LaunchRequest { Mode = "space-calibrator", Double = "hip" })) == "LHR-467E1FA2,LHR-91D63DB2" &&
+                check("vr-launch: VRChat ignores both trackers of each pair DoubleHip DoubleChest Tracker joins", string.Join(",", s1.IgnoreFor(new LaunchRequest { Mode = "space-calibrator", Double = "hip" })) == "LHR-467E1FA2,LHR-6BA0C57A" &&
+                    string.Join(",", s1.IgnoreFor(new LaunchRequest { Mode = "native", Double = "chest" })) == "LHR-28D88802,LHR-91D63DB2" && s1.Ignore["both"].Length == 4 &&
                     s1.IgnoreFor(new LaunchRequest { Mode = "native", Double = "" }).Length == 0);
                 File.WriteAllText(Path.Combine(temp, LaunchSettings.FileName), Q("{'code':'" + s1.Code + "','head_tracker':'LHR-6963FCE5','hip_pair':['LHR-467E1FA2','LHR-91D63DB2'],'ignore_trackers':{'chest':['LHR-6BA0C57A','LHR-1 & calc']}}"));
                 var s2 = LaunchSettings.Load(temp);
@@ -820,8 +1028,7 @@ namespace AstrasPetOs.RiftRabbit
                     s2.IgnoreFor(new LaunchRequest { Mode = "space-calibrator", Double = "" }).SequenceEqual(new[] { "LHR-6963FCE5" }) &&
                     s2.IgnoreFor(new LaunchRequest { Mode = "native", Double = "" }).Length == 0);
                 check("vr-launch: a hand edit can only name serials", s2.Ignore["chest"].SequenceEqual(new[] { "LHR-6BA0C57A" }) && s2.HipPair.Length == 2 && s2.ChestPair.Length == 0);
-                check("vr-launch: VRChat's command line", VrLaunch.VrChatArguments(new[] { "LHR-467E1FA2", "LHR-91D63DB2" }) == "-applaunch 438100 --ignore-trackers=LHR-467E1FA2,LHR-91D63DB2" &&
-                    VrLaunch.VrChatArguments(new string[0]) == "-applaunch 438100");
+                check("vr-launch: VRChat's command line carries no list (Steam adds its launch options)", VrLaunch.VrChatArguments() == "-applaunch 438100");
                 var need = VrLaunch.NeededDevices(new LaunchRequest { Headset = "quest-pro", Mode = "space-calibrator", Double = "both" }, s2).Select(k => k.Key).ToList();
                 check("vr-launch: Start VRChat waits for the headset, the controllers, the head tracker and Double Hip's pair (" + string.Join(",", need) + ")",
                     need.SequenceEqual(new[] { "quest-pro", "index-controller-left", "index-controller-right", "vive-tracker-08", "vive-tracker-09", "vive-tracker-03" }));
