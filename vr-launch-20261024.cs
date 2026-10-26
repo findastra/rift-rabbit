@@ -81,14 +81,14 @@ namespace AstrasPetOs.RiftRabbit
             "RF|1|Right Foot", "LF|2|Left Foot", "RA|3|Right Ankle", "LA|4|Left Ankle", "RK|5|Right Knee", "LK|6|Left Knee",
             "FW|7|Front Waist", "BW|8|Back Waist", "RS|9|Right Side", "LS|10|Left Side", "RFS|11|Right Front-Side",
             "LFS|12|Left Front-Side", "RBS|13|Right Back-Side", "LBS|14|Left Back-Side", "FD|15|Front Diaphragm",
-            "BD|16|Back Diaphragm", "FC|17|Front Chest", "BC|18|Back Chest", "RE|19|Right Elbow", "LE|20|Left Elbow",
+            "BD|16|Back Diaphragm", "FS|17|Front Sternum", "BS|18|Back Sternum", "RE|19|Right Elbow", "LE|20|Left Elbow",
             "RH|21|Right Hand", "LH|22|Left Hand", "F|23|Face", "H|24|Head", "DP|25|Dance Pole", "BDH|26|Big Dance Hoop",
             "LDH|27|Little Dance Hoop" };
         // Double Hip's pair is any two of the eight waist spots, usually Front and Back Waist (Astra, 2026-10-25: "the
         // double hip can be made from any of the 8 on the waist, but typical is FW, BW"); Double Chest's any two of the four
         // chest spots, usually Front and Back Chest.
         public static readonly string[] Waist = { "FW", "BW", "RS", "LS", "RFS", "LFS", "RBS", "LBS" };
-        public static readonly string[] Chest = { "FD", "BD", "FC", "BC" };
+        public static readonly string[] Chest = { "FD", "BD", "FS", "BS" };
         public const string Face = "F", Head = "H", RightHand = "RH", LeftHand = "LH";
         public const string HandTracking = "hand-tracking";
         // Object Track VR's objects and the spot of the tracker on each.
@@ -130,13 +130,13 @@ namespace AstrasPetOs.RiftRabbit
         // Device on each spot (Astra, 2026-10-25: "the body spots guess is right"; her stickers in brackets).
         public Dictionary<string, string> Worn = Defaults();
         // The spots of DoubleHip DoubleChest Tracker's two pairs, A first (her app: Hip [W] + [C], Chest [ ] + [M]).
-        public string[] HipSpots = { "FW", "BW" }, ChestSpots = { "FC", "BC" };
+        public string[] HipSpots = { "FW", "BW" }, ChestSpots = { "FS", "BS" };
         public string DoubleHipTracker = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "DoubleHip DoubleChest", "DoubleHipTracker-V1.3.0", "double-hip-tracker.exe");
 
         public static Dictionary<string, string> Defaults()
         {
             return new Dictionary<string, string> {
-                { "F", "quest-pro" }, { "H", "vive-tracker-08" }, { "FC", "vive-tracker-05" }, { "BC", "vive-tracker-03" },
+                { "F", "quest-pro" }, { "H", "vive-tracker-08" }, { "FS", "vive-tracker-05" }, { "BS", "vive-tracker-03" },
                 { "FW", "vive-tracker-09" }, { "BW", "vive-tracker-04" }, { "RK", "vive-tracker-06" }, { "LK", "vive-tracker-02" },
                 { "RF", "vive-tracker-01" }, { "LF", "vive-tracker-07" }, { "RH", "index-controller-right" }, { "LH", "index-controller-left" } };
         }
@@ -173,7 +173,14 @@ namespace AstrasPetOs.RiftRabbit
                     if (port is int && (int)port > 1024 && (int)port < 65536) s.Port = (int)port;
                     s.Code = FarmEvent.Str(m, "code");
                     // A file from before the spots (2026-10-24) gets today's spots once.
-                    if (FarmEvent.Get(m, "spots") == null || s.SetSpots(FarmEvent.Map(FarmEvent.Get(m, "spots")), FarmEvent.Get(m, "double_hip_spots"), FarmEvent.Get(m, "double_chest_spots")) != null) changed = true;
+                    // 17 and 18 were Front and Back Chest [FC]/[BC] until 2026-10-26, now Front and Back Sternum [FS]/[BS]
+                    // (Astra: "Maybe it needs to be Front Sternum and Front Diaphragm, and Back Sternum and Back Diaphragm").
+                    var spots = FarmEvent.Map(FarmEvent.Get(m, "spots"));
+                    if (spots != null) foreach (var old in new[] { "FC", "BC" }) if (spots.ContainsKey(old)) { spots[old == "FC" ? "FS" : "BS"] = spots[old]; spots.Remove(old); changed = true; }
+                    object chestPair = FarmEvent.Get(m, "double_chest_spots");
+                    var cp = chestPair as System.Collections.IEnumerable;
+                    if (cp != null && !(chestPair is string)) chestPair = cp.Cast<object>().Select(o => (object)((o as string) == "FC" ? "FS" : (o as string) == "BC" ? "BS" : o)).ToList();
+                    if (spots == null || s.SetSpots(spots, FarmEvent.Get(m, "double_hip_spots"), chestPair) != null) changed = true;
                     string dht = FarmEvent.Str(m, "double_hip_tracker");
                     if (!string.IsNullOrEmpty(dht) && Path.IsPathRooted(dht) && dht.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) s.DoubleHipTracker = dht;
                 }
@@ -223,7 +230,7 @@ namespace AstrasPetOs.RiftRabbit
         public void AutoPairs()
         {
             HipSpots = AutoPair(HipSpots, Spots.Waist, new[] { "FW", "BW" });
-            ChestSpots = AutoPair(ChestSpots, new[] { "FC", "BC", "FD", "BD" }, new[] { "FC", "BC" });
+            ChestSpots = AutoPair(ChestSpots, new[] { "FS", "BS", "FD", "BD" }, new[] { "FS", "BS" });
         }
 
         string[] AutoPair(string[] now, string[] group, string[] usual)
@@ -1360,13 +1367,17 @@ namespace AstrasPetOs.RiftRabbit
                 check("vr-launch: only her spots, a device that fits each, each tracker once, pairs from their own part of the body",
                     set("{'spots':{'XX':'vive-tracker-01'}}") != null && set("{'spots':{'F':'vive-tracker-01'}}") != null && set("{'spots':{'RH':'index-controller-left'}}") != null &&
                     set("{'spots':{'RF':'calc.exe'}}") != null && set("{'spots':{'RF':'vive-tracker-01','LF':'vive-tracker-01'}}") != null &&
-                    set("{'spots':{},'hip':['FW','FC']}") != null && set("{'spots':{},'chest':['FC','FC']}") != null && s2.Worn.Count == 12);
+                    set("{'spots':{},'hip':['FW','FS']}") != null && set("{'spots':{},'chest':['FS','FS']}") != null && s2.Worn.Count == 12);
+                File.WriteAllText(Path.Combine(temp, LaunchSettings.FileName), Q("{'code':'" + s1.Code + "','spots':{'FC':'vive-tracker-05','BC':'vive-tracker-03'},'double_chest_spots':['FC','BC']}"));
+                var old17 = LaunchSettings.Load(temp);
+                check("vr-launch: a file from before 2026-10-26 moves Front and Back Chest to Front and Back Sternum", old17.At("FS") == "vive-tracker-05" && old17.At("BS") == "vive-tracker-03" && old17.ChestSpots.SequenceEqual(new[] { "FS", "BS" }));
+                LaunchSettings.Load(Path.Combine(temp, "fresh")).Save(temp);
                 var s3 = LaunchSettings.Load(temp);
-                bool usual = s3.AutoDouble() == "both" && s3.ChestSpots.SequenceEqual(new[] { "FC", "BC" });
-                var moved = s3.Worn.ToDictionary(kv => kv.Key, kv => (object)kv.Value); moved.Remove("FC"); moved["FD"] = "vive-tracker-05";
+                bool usual = s3.AutoDouble() == "both" && s3.ChestSpots.SequenceEqual(new[] { "FS", "BS" });
+                var moved = s3.Worn.ToDictionary(kv => kv.Key, kv => (object)kv.Value); moved.Remove("FS"); moved["FD"] = "vive-tracker-05";
                 s3.SetSpots(moved, null, null);
-                check("vr-launch: the Double pairs and choice follow the spots by themselves (chest tracker moved to 15 Front Diaphragm)",
-                    usual && s3.ChestSpots.SequenceEqual(new[] { "BC", "FD" }) && s3.ChestPair.Length == 2 && s3.AutoDouble() == "both" &&
+                check("vr-launch: the Double pairs and choice follow the spots by themselves (the front sternum tracker moved to 15 Front Diaphragm)",
+                    usual && s3.ChestSpots.SequenceEqual(new[] { "BS", "FD" }) && s3.ChestPair.Length == 2 && s3.AutoDouble() == "both" &&
                     LaunchRequest.From(map("{'headset':'quest-pro','mode':'native','double':'auto'}"), out problem) != null);
                 check("vr-launch: a hand may hold a Quest Pro or Quest 3 controller, never the other hand's", Spots.Fits("RH", "quest-pro-controller-right") && Spots.Fits("LH", "quest-3-controller-left") && !Spots.Fits("RH", "quest-3-controller-left"));
                 check("vr-launch: hand tracking may be on both hands; any two waist spots make Double Hip",
@@ -1426,7 +1437,7 @@ namespace AstrasPetOs.RiftRabbit
                     string launchBody = "{" + code + Q(",'headset':'quest-pro','mode':'space-calibrator','streamer':'virtual-desktop','double':'hip','osc':true}");
                     check("vr-launch: it listens on 127.0.0.1 only", port > 0);
                     check("vr-launch: a web site is refused", Post(port, "https://example.com", "/launch", launchBody).StartsWith("HTTP/1.1 403") && made == null);
-                    string spotsBody = "{" + code + Q(",'spots':{'F':'quest-pro','RH':'index-controller-right','LH':'index-controller-left','FW':'vive-tracker-09','BW':'vive-tracker-04','FC':'vive-tracker-05','BC':'vive-tracker-03','H':'vive-tracker-08'},'hip':['FW','BW'],'chest':['FC','BC']}");
+                    string spotsBody = "{" + code + Q(",'spots':{'F':'quest-pro','RH':'index-controller-right','LH':'index-controller-left','FW':'vive-tracker-09','BW':'vive-tracker-04','FS':'vive-tracker-05','BS':'vive-tracker-03','H':'vive-tracker-08'},'hip':['FW','BW'],'chest':['FS','BS']}");
                     check("vr-launch: a web site cannot change the spots", Post(port, "https://example.com", "/spots", spotsBody).StartsWith("HTTP/1.1 403") && saved == 0);
                     string spotsOk = Post(port, "null", "/spots", spotsBody);
                     check("vr-launch: the page's spots are kept and read back", spotsOk.Contains(Q("'ok':true")) && saved == 1 && s1.At("RF") == "" && s1.HeadTracker == "LHR-6963FCE5");
