@@ -106,8 +106,10 @@ namespace AstrasPetOs.RiftRabbit
         public static bool Fits(string code, string device)
         {
             if (code == Face) return LaunchRequest.Headsets.Contains(device);
-            if (code == RightHand) return device == "index-controller-right" || device == HandTracking;
-            if (code == LeftHand) return device == "index-controller-left" || device == HandTracking;
+            // A hand holds an Index controller, the Quest Pro's or Quest 3's own controller, or nothing but the headset's
+            // hand tracking (Astra, 2026-10-26: "You need the index controllers, Qpro controllers, q3 controllers, too").
+            if (code == RightHand) return device == "index-controller-right" || device == "quest-pro-controller-right" || device == "quest-3-controller-right" || device == HandTracking;
+            if (code == LeftHand) return device == "index-controller-left" || device == "quest-pro-controller-left" || device == "quest-3-controller-left" || device == HandTracking;
             return Known(code) && Tracker(device);
         }
 
@@ -1329,6 +1331,7 @@ namespace AstrasPetOs.RiftRabbit
                     set("{'spots':{'XX':'vive-tracker-01'}}") != null && set("{'spots':{'F':'vive-tracker-01'}}") != null && set("{'spots':{'RH':'index-controller-left'}}") != null &&
                     set("{'spots':{'RF':'calc.exe'}}") != null && set("{'spots':{'RF':'vive-tracker-01','LF':'vive-tracker-01'}}") != null &&
                     set("{'spots':{},'hip':['FW','FC']}") != null && set("{'spots':{},'chest':['FC','FC']}") != null && s2.Worn.Count == 12);
+                check("vr-launch: a hand may hold a Quest Pro or Quest 3 controller, never the other hand's", Spots.Fits("RH", "quest-pro-controller-right") && Spots.Fits("LH", "quest-3-controller-left") && !Spots.Fits("RH", "quest-3-controller-left"));
                 check("vr-launch: hand tracking may be on both hands; any two waist spots make Double Hip",
                     set("{'spots':{'F':'quest-3','RH':'hand-tracking','LH':'hand-tracking','RS':'vive-tracker-09','LS':'vive-tracker-04','RF':'vive-tracker-01'},'hip':['RS','LS'],'chest':['FS','BS']}") == null &&
                     s2.HipPair.SequenceEqual(new[] { "LHR-467E1FA2", "LHR-6BA0C57A" }) && s2.ChestPair.Length == 0 && s2.HeadTracker == "");

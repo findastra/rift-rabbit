@@ -112,7 +112,7 @@ bin\rift-rabbit-20261024.exe --startup
 | `--quit` | stop the running launcher |
 | `--tool wonderland-launchpad-v1.0-vr-launch-v1.0 on\|off` | switch the launcher ON or OFF |
 | `bin\rift-rabbit-check-20261024.exe --programs` | which of her VR programs are open and which VR devices SteamVR has on |
-| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (56) |
+| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (57) |
 
 ## Next steps
 
