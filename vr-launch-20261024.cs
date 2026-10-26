@@ -70,7 +70,7 @@ namespace AstrasPetOs.RiftRabbit
         }
     }
 
-    // Where each device is worn: Astra's 27 spots (2026-10-25, her drawing: "27 locations tracking can occur, devices may
+    // Where each device is worn: Astra's 29 spots (2026-10-25, her drawing: "27 locations tracking can occur, devices may
     // vary"), set with tracker-strapper on the page. Numbers, codes and names are hers; facing her, her right is on the
     // left. 23 Face holds the headset, 21 and 22 the hands (an Index controller or the headset's hand tracking), every
     // other spot a Vive Tracker 3.0.
@@ -82,8 +82,8 @@ namespace AstrasPetOs.RiftRabbit
             "FW|7|Front Waist", "BW|8|Back Waist", "RS|9|Right Side", "LS|10|Left Side", "RFS|11|Right Front-Side",
             "LFS|12|Left Front-Side", "RBS|13|Right Back-Side", "LBS|14|Left Back-Side", "FD|15|Front Diaphragm",
             "BD|16|Back Diaphragm", "FS|17|Front Sternum", "BS|18|Back Sternum", "RE|19|Right Elbow", "LE|20|Left Elbow",
-            "RH|21|Right Hand", "LH|22|Left Hand", "F|23|Face", "H|24|Head", "DP|25|Dance Pole", "BDH|26|Big Dance Hoop",
-            "LDH|27|Little Dance Hoop" };
+            "RH|21|Right Hand", "LH|22|Left Hand", "F|23|Face", "H|24|Head", "DP|25|Dance Pole", "BDH|26|Big Dance Hoop Side",
+            "BDT|27|Big Dance Hoop Top", "LDH|28|Little Dance Hoop Side", "LDT|29|Little Dance Hoop Top" };
         // Double Hip's pair is any two of the eight waist spots, usually Front and Back Waist (Astra, 2026-10-25: "the
         // double hip can be made from any of the 8 on the waist, but typical is FW, BW"); Double Chest's any two of the four
         // chest spots, usually Front and Back Chest.
@@ -91,8 +91,9 @@ namespace AstrasPetOs.RiftRabbit
         public static readonly string[] Chest = { "FD", "BD", "FS", "BS" };
         public const string Face = "F", Head = "H", RightHand = "RH", LeftHand = "LH";
         public const string HandTracking = "hand-tracking";
-        // Object Track VR's objects and the spot of the tracker on each.
-        public static readonly Dictionary<string, string> ObjectSpot = new Dictionary<string, string> { { "dance-pole", "DP" }, { "large-hoop", "BDH" }, { "small-hoop", "LDH" } };
+        // Object Track VR's objects and the spots a tracker may sit on for each: each hoop has two, its side and its top
+        // (Astra, 2026-10-26, her drawing: "+2 more positions"); one tracker on either is enough.
+        public static readonly Dictionary<string, string[]> ObjectSpots = new Dictionary<string, string[]> { { "dance-pole", new[] { "DP" } }, { "large-hoop", new[] { "BDH", "BDT" } }, { "small-hoop", new[] { "LDH", "LDT" } } };
 
         public static bool Known(string code) { return Table.Any(t => t.Split('|')[0] == code); }
         public static string Name(string code)
@@ -199,7 +200,7 @@ namespace AstrasPetOs.RiftRabbit
             return list.Cast<object>().Select(o => o as string).ToArray();
         }
 
-        // The spots and pairs from the page (or the file): only her 27 spots, only a device that fits each, each device
+        // The spots and pairs from the page (or the file): only her 29 spots, only a device that fits each, each device
         // once (the headset's hand tracking may be on both hands), and each pair two different spots of its own part of
         // the body. Anything else changes nothing and says why.
         public string SetSpots(IDictionary<string, object> spots, object hip, object chest)
@@ -209,7 +210,7 @@ namespace AstrasPetOs.RiftRabbit
             foreach (var kv in spots)
             {
                 string device = kv.Value as string;
-                if (!Spots.Known(kv.Key)) return "Not one of the 27 spots: " + kv.Key + ".";
+                if (!Spots.Known(kv.Key)) return "Not one of the 29 spots: " + kv.Key + ".";
                 if (string.IsNullOrEmpty(device)) continue;
                 if (!Spots.Fits(kv.Key, device)) return "That device does not go on " + Spots.Name(kv.Key) + ".";
                 if (device != Spots.HandTracking && worn.ContainsValue(device)) return "One device is on two spots.";
@@ -257,7 +258,7 @@ namespace AstrasPetOs.RiftRabbit
             if (r.HeadTracker && HeadTracker.Length == 0) return "This mode needs a tracker on " + Spots.Name(Spots.Head) + ".";
             if ((r.Double == "hip" || r.Double == "both") && HipPair.Length == 0) return "Double Hip needs trackers on " + string.Join(" and ", HipSpots.Select(Spots.Name)) + ".";
             if ((r.Double == "chest" || r.Double == "both") && ChestPair.Length == 0) return "Double Chest needs trackers on " + string.Join(" and ", ChestSpots.Select(Spots.Name)) + ".";
-            if (!string.IsNullOrEmpty(r.Object) && SerialAt(Spots.ObjectSpot[r.Object]).Length == 0) return "That object needs a tracker on " + Spots.Name(Spots.ObjectSpot[r.Object]) + ".";
+            if (!string.IsNullOrEmpty(r.Object) && Spots.ObjectSpots[r.Object].All(c => SerialAt(c).Length == 0)) return "That object needs a tracker on " + string.Join(" or ", Spots.ObjectSpots[r.Object].Select(Spots.Name)) + ".";
             return null;
         }
 
@@ -433,7 +434,7 @@ namespace AstrasPetOs.RiftRabbit
             {
                 if (!Spots.Tracker(s.At(code))) continue;
                 if (code == Spots.Head && !r.HeadTracker) continue;
-                if (Spots.ObjectSpot.ContainsValue(code) && (string.IsNullOrEmpty(r.Object) || Spots.ObjectSpot[r.Object] != code)) continue;
+                if (Spots.ObjectSpots.Values.Any(v => v.Contains(code)) && (string.IsNullOrEmpty(r.Object) || !Spots.ObjectSpots[r.Object].Contains(code))) continue;
                 var row = VrDevices.Table.Select(t => t.Split('|')).First(f => f[0] == s.At(code));
                 need.Add(new KeyValuePair<string, string>(row[0], row[1] + " on " + Spots.Name(code)));
             }

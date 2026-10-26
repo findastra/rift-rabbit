@@ -60,7 +60,7 @@ from SteamVR's own log (`Steam\logs\vrserver.txt`), read only.
   from any web site, and needs the code from its settings file. It takes only the page's fixed values (headset, mode,
   streamer, Double choice, Object Track VR object, OSCGoesBrrr, Woojer vest), never a program name or a command.
 - **Its settings**, never committed: `Documents\Astra's PetOS Data\rift-rabbit\vr-launch-settings-20261024.json`: the
-  port (47621), the code, which device is on each of her 27 spots, the two Double pairs, and where DoubleHip DoubleChest
+  port (47621), the code, which device is on each of her 29 spots, the two Double pairs, and where DoubleHip DoubleChest
   Tracker is. The spots are hers (2026-10-25 drawing: 1 Right Foot [RF] to 27 Little Dance Hoop [LDH]); she sets them
   with tracker-strapper on Rift Rabbit's page opened on this PC, which sends them to `/spots`. Only her spots, only a
   device that fits each (23 Face a headset, 21 and 22 an Index controller or the headset's hand tracking, the rest a
