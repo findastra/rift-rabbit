@@ -890,6 +890,139 @@ namespace AstrasPetOs.RiftRabbit
         }
     }
 
+    // Where each dongle is plugged in (Astra, 2026-10-26: "Can you add USBDeview ... and then also make a tool for us to run
+    // it and show a branch where each dongle is? There are so many ways to plug them in, we want to optimize it").
+    // NirSoft's USBDeview (Documents\USBDeview-3.10) lists what is plugged in; Windows' own device tree gives each one's
+    // hub, root hub and USB controller, so the page can draw them as branches. SteamVR's log says which tracker a dongle
+    // carries when it has seen them together. Read only: nothing is changed.
+    static class UsbMap
+    {
+        public static string UsbDeview() { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "USBDeview-3.10", "USBDeview.exe"); }
+
+        [System.Runtime.InteropServices.DllImport("cfgmgr32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern int CM_Locate_DevNodeW(out uint devInst, string deviceId, int flags);
+        [System.Runtime.InteropServices.DllImport("cfgmgr32.dll")]
+        static extern int CM_Get_Parent(out uint parent, uint devInst, int flags);
+        [System.Runtime.InteropServices.DllImport("cfgmgr32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern int CM_Get_Device_IDW(uint devInst, StringBuilder buffer, int length, int flags);
+        [System.Runtime.InteropServices.DllImport("cfgmgr32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern int CM_Get_DevNode_Registry_PropertyW(uint devInst, int property, out int type, StringBuilder buffer, ref int length, int flags);
+
+        const int DeviceDesc = 0x01, FriendlyName = 0x0D, LocationInformation = 0x0E;
+
+        static string Prop(uint node, int property)
+        {
+            var sb = new StringBuilder(512); int length = sb.Capacity * 2, type;
+            return CM_Get_DevNode_Registry_PropertyW(node, property, out type, sb, ref length, 0) == 0 ? sb.ToString() : "";
+        }
+        static string Id(uint node) { var sb = new StringBuilder(512); return CM_Get_Device_IDW(node, sb, sb.Capacity, 0) == 0 ? sb.ToString() : ""; }
+        static string Name(uint node) { string n = Prop(node, FriendlyName); return n.Length > 0 ? n : Prop(node, DeviceDesc); }
+
+        // What a device is, from its USB ids and name.
+        public static string Kind(string id, string name)
+        {
+            string u = (id ?? "").ToUpperInvariant();
+            if (u.Contains("VID_28DE&PID_2101")) return "tracker-dongle";     // Watchman Dongle: one tracker or controller each
+            if (u.Contains("VID_28DE&PID_2102")) return "radio";              // Valve VR Radio
+            if (u.Contains("VID_28DE")) return "valve";
+            if (u.Contains("VID_0BB4")) return "htc";
+            if (u.StartsWith("PCI\\")) return "controller";
+            if (u.Contains("ROOT_HUB")) return "root-hub";
+            if ((name ?? "").IndexOf("hub", StringComparison.OrdinalIgnoreCase) >= 0) return "hub";
+            return "device";
+        }
+
+        sealed class Node { public string Id, Name, Kind, Location, Serial, Tracker; public List<Node> Children = new List<Node>(); }
+
+        static Dictionary<string, object> Data(Node n)
+        {
+            var d = new Dictionary<string, object> { { "name", n.Name }, { "kind", n.Kind }, { "location", n.Location } };
+            if (!string.IsNullOrEmpty(n.Serial)) d["serial"] = n.Serial;
+            if (!string.IsNullOrEmpty(n.Tracker)) d["tracker"] = n.Tracker;
+            if (n.Children.Count > 0) d["children"] = n.Children.OrderBy(c => c.Location).ThenBy(c => c.Name).Select(c => (object)Data(c)).ToList();
+            return d;
+        }
+
+        // Which tracker each dongle carries, when SteamVR's log names a dongle serial and a tracker serial on one line.
+        public static Dictionary<string, string> Pairings(IEnumerable<string> lines, IEnumerable<string> dongles)
+        {
+            var found = new Dictionary<string, string>();
+            var serial = new Regex(@"\b(LHR-[0-9A-F]{8})\b");
+            foreach (string line in lines)
+            {
+                var m = serial.Match(line);
+                if (!m.Success) continue;
+                foreach (string d in dongles) if (line.Contains(d)) found[d] = m.Groups[1].Value;
+            }
+            return found;
+        }
+
+        // The connected devices from USBDeview's XML export: instance id, name, serial.
+        public static List<string[]> Devices(string xml)
+        {
+            var doc = new System.Xml.XmlDocument();
+            doc.LoadXml(xml);
+            var list = new List<string[]>();
+            foreach (System.Xml.XmlNode item in doc.SelectNodes("//item"))
+            {
+                Func<string, string> f = k => { var n = item.SelectSingleNode(k); return n == null ? "" : n.InnerText.Trim(); };
+                // Whole devices only: a device's interfaces (MI_xx) and HID collections draw no branch of their own.
+                if (f("connected") != "Yes" || f("instance_id").Length == 0 || f("instance_id").Contains("&MI_") || !f("instance_id").StartsWith("USB\\", StringComparison.OrdinalIgnoreCase)) continue;
+                list.Add(new[] { f("instance_id"), f("device_name").Length > 0 ? f("device_name") : f("description"), f("serial_number") });
+            }
+            return list;
+        }
+
+        public static Dictionary<string, object> Scan(string exe, string logFolder)
+        {
+            if (!File.Exists(exe)) return new Dictionary<string, object> { { "ok", false }, { "said", "USBDeview is not in Documents\\USBDeview-3.10." } };
+            string xmlFile = Path.Combine(Path.GetTempPath(), "rift-rabbit-usb-" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".xml");
+            try
+            {
+                using (var p = Process.Start(new ProcessStartInfo(exe, "/DisplayDisconnected 0 /sxml \"" + xmlFile + "\"") { UseShellExecute = false, CreateNoWindow = true }))
+                    if (!p.WaitForExit(30000)) return new Dictionary<string, object> { { "ok", false }, { "said", "USBDeview did not finish within 30 seconds." } };
+                var devices = Devices(File.ReadAllText(xmlFile));
+                var nodes = new Dictionary<string, Node>(StringComparer.OrdinalIgnoreCase);
+                var roots = new List<Node>();
+                foreach (var dev in devices)
+                {
+                    uint dn;
+                    if (CM_Locate_DevNodeW(out dn, dev[0], 0) != 0) continue;
+                    Node child = null;
+                    // Walk up from the device to its USB controller, joining branches already seen.
+                    for (int depth = 0; depth < 12; depth++)
+                    {
+                        string id = Id(dn);
+                        if (id.Length == 0) break;
+                        bool known = nodes.ContainsKey(id);
+                        Node n = known ? nodes[id] : new Node { Id = id, Name = Name(dn), Kind = Kind(id, Name(dn)), Location = Prop(dn, LocationInformation) };
+                        if (depth == 0 && dev[1].Length > 0 && !dev[1].StartsWith("Port_#")) n.Name = dev[1];
+                        if (depth == 0 && dev[2].Length > 0) n.Serial = dev[2];
+                        if (child != null && !n.Children.Contains(child)) n.Children.Add(child);
+                        if (known) { child = null; break; }
+                        nodes[id] = n;
+                        if (n.Kind == "controller") { roots.Add(n); child = null; break; }
+                        child = n;
+                        uint parent;
+                        if (CM_Get_Parent(out parent, dn, 0) != 0) break;
+                        dn = parent;
+                    }
+                }
+                var dongles = nodes.Values.Where(n => n.Kind == "tracker-dongle" && !string.IsNullOrEmpty(n.Serial)).ToList();
+                var lines = new List<string>();
+                foreach (string f in new[] { "vrserver.previous.txt", "vrserver.txt" })
+                    try { string path = Path.Combine(logFolder, f); if (File.Exists(path)) lines.AddRange(File.ReadAllLines(path)); } catch (Exception) { }
+                var paired = Pairings(lines, dongles.Select(n => n.Serial));
+                foreach (var n in dongles) { string t; if (paired.TryGetValue(n.Serial, out t)) n.Tracker = t; }
+                return new Dictionary<string, object> {
+                    { "ok", true }, { "time", FarmEvent.Now(DateTimeOffset.Now) }, { "dongles", dongles.Count },
+                    { "controllers", roots.OrderBy(r => r.Name).Select(r => (object)Data(r)).ToList() } };
+            }
+            catch (Exception e) { return new Dictionary<string, object> { { "ok", false }, { "said", "The scan stopped: " + e.Message } }; }
+            finally { try { File.Delete(xmlFile); } catch (Exception) { } }
+        }
+    }
+
     // The page's way in: plain HTTP on 127.0.0.1 only (a loopback socket, so nothing off this PC can reach it), and every
     // request carries the code from the launcher's settings, which only a page opened from this PC can read. Requests
     // from a web site (an Origin that is not a file or this PC) are refused before anything else.
@@ -1017,6 +1150,9 @@ namespace AstrasPetOs.RiftRabbit
                         string said = on ? VrLaunch.OpenNow(w) : VrPrograms.Close(rabbit, w, 10);
                         return new Dictionary<string, object> { { "ok", true }, { "id", id }, { "said", said }, { "running", VrPrograms.Look(w).Running } };
                     }
+                case "/usb-map":
+                    // tracker-strapper's neighbour on the page: which dongle sits on which hub and USB controller.
+                    return UsbMap.Scan(UsbMap.UsbDeview(), Path.GetDirectoryName(VrDevices.LogFile()));
                 case "/spots":
                     {
                         // tracker-strapper on the page: which device is on each spot, and the two Double pairs.
@@ -1135,6 +1271,13 @@ namespace AstrasPetOs.RiftRabbit
                 LaunchRequest.From(map("{'headset':'quest-pro','mode':'native'}"), out problem).Face && !noFace.Face && !steps.Contains("open:vrcft") &&
                 steps.IndexOf("open:base-station-fov") > steps.IndexOf("open:ovr-smooth-tracking") && steps.Contains("open:vr-pole-overlay") &&
                 VrLaunch.Overlays.All(o => VrPrograms.Find(o) != null && VrPrograms.OpensSafely(VrPrograms.Find(o).Open)));
+            string usbXml = "<?xml version=\"1.0\"?><usb_devices_list><item><device_name>Watchman Dongle</device_name><connected>Yes</connected><serial_number>E2B4C5C9E8</serial_number><instance_id>USB\\VID_28DE&amp;PID_2101\\E2B4C5C9E8</instance_id></item><item><device_name>Old</device_name><connected>No</connected><instance_id>USB\\X</instance_id></item></usb_devices_list>";
+            var usb = UsbMap.Devices(usbXml);
+            var pair = UsbMap.Pairings(new[] { "lighthouse: E2B4C5C9E8 now carries LHR-467E1FA2", "nothing here" }, new[] { "E2B4C5C9E8", "A745E8B994" });
+            check("usb-map: only connected devices; dongles and hubs are told apart; a dongle's tracker comes from SteamVR's log",
+                usb.Count == 1 && usb[0][2] == "E2B4C5C9E8" && UsbMap.Kind(usb[0][0], "") == "tracker-dongle" && UsbMap.Kind("USB\\ROOT_HUB30\\5", "") == "root-hub" &&
+                UsbMap.Kind("USB\\VID_05E3&PID_0610\\6", "Generic USB Hub") == "hub" && UsbMap.Kind("PCI\\VEN_1022", "") == "controller" &&
+                pair.Count == 1 && pair["E2B4C5C9E8"] == "LHR-467E1FA2" && !UsbMap.Scan(@"C:\no\USBDeview.exe", "").ContainsKey("controllers"));
             var lh = VrLaunch.Plan(new LaunchRequest { Headset = "quest-pro", Mode = "questlhsync", Streamer = "virtual-desktop", Double = "" }).Select(s => s.Id).ToList();
             check("vr-launch: x.4 QuestLHSync needs no head tracker, keeps Space Calibrator closed and opens no other overlay",
                 lh.Contains("questlhsync") && lh.IndexOf("questlhsync") > lh.IndexOf("open:steamvr") && lh.Contains("close:space-calibrator") && !lh.Contains("open:space-sync") && !lh.Contains("open:space-override") &&
