@@ -64,7 +64,7 @@ namespace AstrasPetOs.RiftRabbit
             if (!Headsets.Contains(r.Headset)) problem = "Not one of the headsets.";
             else if (!Modes.Contains(r.Mode)) problem = "Not one of the modes.";
             else if (!Streamers.Contains(r.Streamer)) problem = "Not one of the streamers.";
-            else if (!Doubles.Contains(r.Double)) problem = "Not one of the Double Hip / Double Chest choices.";
+            else if (!Doubles.Contains(r.Double) && r.Double != "auto") problem = "Not one of the Double Hip / Double Chest choices.";
             else if (!Objects.Contains(r.Object)) problem = "Not one of Object Track VR's objects.";
             return problem == null ? r : null;
         }
@@ -80,15 +80,15 @@ namespace AstrasPetOs.RiftRabbit
         public static readonly string[] Table = {
             "RF|1|Right Foot", "LF|2|Left Foot", "RA|3|Right Ankle", "LA|4|Left Ankle", "RK|5|Right Knee", "LK|6|Left Knee",
             "FW|7|Front Waist", "BW|8|Back Waist", "RS|9|Right Side", "LS|10|Left Side", "RFS|11|Right Front-Side",
-            "LFS|12|Left Front-Side", "RBS|13|Right Back-Side", "LBS|14|Left Back-Side", "FS|15|Front Sternum",
-            "BS|16|Back Sternum", "FC|17|Front Chest", "BC|18|Back Chest", "RE|19|Right Elbow", "LE|20|Left Elbow",
+            "LFS|12|Left Front-Side", "RBS|13|Right Back-Side", "LBS|14|Left Back-Side", "FD|15|Front Diaphragm",
+            "BD|16|Back Diaphragm", "FC|17|Front Chest", "BC|18|Back Chest", "RE|19|Right Elbow", "LE|20|Left Elbow",
             "RH|21|Right Hand", "LH|22|Left Hand", "F|23|Face", "H|24|Head", "DP|25|Dance Pole", "BDH|26|Big Dance Hoop",
             "LDH|27|Little Dance Hoop" };
         // Double Hip's pair is any two of the eight waist spots, usually Front and Back Waist (Astra, 2026-10-25: "the
         // double hip can be made from any of the 8 on the waist, but typical is FW, BW"); Double Chest's any two of the four
         // chest spots, usually Front and Back Chest.
         public static readonly string[] Waist = { "FW", "BW", "RS", "LS", "RFS", "LFS", "RBS", "LBS" };
-        public static readonly string[] Chest = { "FS", "BS", "FC", "BC" };
+        public static readonly string[] Chest = { "FD", "BD", "FC", "BC" };
         public const string Face = "F", Head = "H", RightHand = "RH", LeftHand = "LH";
         public const string HandTracking = "hand-tracking";
         // Object Track VR's objects and the spot of the tracker on each.
@@ -212,7 +212,35 @@ namespace AstrasPetOs.RiftRabbit
             if (h.Length != 2 || h[0] == h[1] || !h.All(x => Spots.Waist.Contains(x))) return "Double Hip's pair is two different waist spots.";
             if (c.Length != 2 || c[0] == c[1] || !c.All(x => Spots.Chest.Contains(x))) return "Double Chest's pair is two different chest spots.";
             Worn = worn; HipSpots = h; ChestSpots = c;
+            AutoPairs();
             return null;
+        }
+
+        // The pairs follow the spots by themselves (Astra, 2026-10-26: "I dont want to have to mess with double hip I want
+        // you do fix that program for me when I launch"): a pair whose two spots both have trackers stays; otherwise the
+        // usual pair (Front and Back Waist, Front and Back Chest) when both are worn, else the first two worn spots of the
+        // group.
+        public void AutoPairs()
+        {
+            HipSpots = AutoPair(HipSpots, Spots.Waist, new[] { "FW", "BW" });
+            ChestSpots = AutoPair(ChestSpots, new[] { "FC", "BC", "FD", "BD" }, new[] { "FC", "BC" });
+        }
+
+        string[] AutoPair(string[] now, string[] group, string[] usual)
+        {
+            Func<string, bool> worn = code => Spots.Tracker(At(code));
+            if (now.Length == 2 && now.All(worn)) return now;
+            if (usual.All(worn)) return usual;
+            var found = group.Where(worn).Take(2).ToArray();
+            return found.Length == 2 ? found : now;
+        }
+
+        // The Double choice the spots make: Double Hip when the hip pair is worn, Double Chest when the chest pair is,
+        // Both when both are, Off when neither.
+        public string AutoDouble()
+        {
+            bool hip = HipPair.Length == 2, chest = ChestPair.Length == 2;
+            return hip && chest ? "both" : hip ? "hip" : chest ? "chest" : "";
         }
 
         // What a launch needs that has no device on its spot; null when it has everything.
@@ -1128,6 +1156,8 @@ namespace AstrasPetOs.RiftRabbit
                         string problem;
                         var r = LaunchRequest.From(req, out problem);
                         if (r == null) return Status(current, problem);
+                        // "auto": the Double choice her spots make (2026-10-26).
+                        if (r.Double == "auto") r.Double = Settings.AutoDouble();
                         problem = Settings.Missing(r);
                         if (problem != null) return Status(current, problem);
                         if (!VrLaunch.Installed(r.Mode)) return Status(current, (r.Mode == "space-override" ? "Space Override" : r.Mode == "space-sync" ? "Space Sync" : "QuestLHSync (it waits for a rooted headset)") + " is not installed.");
@@ -1331,14 +1361,21 @@ namespace AstrasPetOs.RiftRabbit
                     set("{'spots':{'XX':'vive-tracker-01'}}") != null && set("{'spots':{'F':'vive-tracker-01'}}") != null && set("{'spots':{'RH':'index-controller-left'}}") != null &&
                     set("{'spots':{'RF':'calc.exe'}}") != null && set("{'spots':{'RF':'vive-tracker-01','LF':'vive-tracker-01'}}") != null &&
                     set("{'spots':{},'hip':['FW','FC']}") != null && set("{'spots':{},'chest':['FC','FC']}") != null && s2.Worn.Count == 12);
+                var s3 = LaunchSettings.Load(temp);
+                bool usual = s3.AutoDouble() == "both" && s3.ChestSpots.SequenceEqual(new[] { "FC", "BC" });
+                var moved = s3.Worn.ToDictionary(kv => kv.Key, kv => (object)kv.Value); moved.Remove("FC"); moved["FD"] = "vive-tracker-05";
+                s3.SetSpots(moved, null, null);
+                check("vr-launch: the Double pairs and choice follow the spots by themselves (chest tracker moved to 15 Front Diaphragm)",
+                    usual && s3.ChestSpots.SequenceEqual(new[] { "BC", "FD" }) && s3.ChestPair.Length == 2 && s3.AutoDouble() == "both" &&
+                    LaunchRequest.From(map("{'headset':'quest-pro','mode':'native','double':'auto'}"), out problem) != null);
                 check("vr-launch: a hand may hold a Quest Pro or Quest 3 controller, never the other hand's", Spots.Fits("RH", "quest-pro-controller-right") && Spots.Fits("LH", "quest-3-controller-left") && !Spots.Fits("RH", "quest-3-controller-left"));
                 check("vr-launch: hand tracking may be on both hands; any two waist spots make Double Hip",
-                    set("{'spots':{'F':'quest-3','RH':'hand-tracking','LH':'hand-tracking','RS':'vive-tracker-09','LS':'vive-tracker-04','RF':'vive-tracker-01'},'hip':['RS','LS'],'chest':['FS','BS']}") == null &&
+                    set("{'spots':{'F':'quest-3','RH':'hand-tracking','LH':'hand-tracking','RS':'vive-tracker-09','LS':'vive-tracker-04','RF':'vive-tracker-01'},'hip':['RS','LS'],'chest':['FD','BD']}") == null &&
                     s2.HipPair.SequenceEqual(new[] { "LHR-467E1FA2", "LHR-6BA0C57A" }) && s2.ChestPair.Length == 0 && s2.HeadTracker == "");
                 check("vr-launch: a launch needs its spots: the headset on Face, a head tracker for x.1 to x.3, both trackers of a pair, the object's tracker",
                     s2.Missing(new LaunchRequest { Headset = "quest-pro", Mode = "native", Double = "" }).Contains("Quest 3") &&
                     s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "space-sync", Double = "" }).Contains("24 Head [H]") &&
-                    s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "native", Double = "both" }).Contains("15 Front Sternum [FS]") &&
+                    s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "native", Double = "both" }).Contains("15 Front Diaphragm [FD]") &&
                     s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "native", Double = "hip", Object = "dance-pole" }).Contains("25 Dance Pole [DP]") &&
                     s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "native", Double = "hip", Object = "" }) == null);
                 check("vr-launch: VRChat's command line carries no list (Steam adds its launch options)", VrLaunch.VrChatArguments() == "-applaunch 438100");
