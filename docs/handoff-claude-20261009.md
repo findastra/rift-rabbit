@@ -1,14 +1,14 @@
 # Handoff from Claude, 2026-10-09
 
-Prepared by **Claude Opus 5.5** (`claude-opus-5-5`); the repo was started by Claude Haiku 5.5 (`claude-haiku-5-5`) the same day. For Astra and whichever assistant updates `astras-pet-apps` next.
+Prepared by **Claude Opus 5.5** (`claude-opus-5-5`); the repo was started by Claude Haiku 5.5 (`claude-haiku-5-5`) the same day. For Astra and whichever assistant updates `astras-pet-os` next.
 
 ## Done
 
 - `findastra/rift-rabbit` created: **private**, topic `pet-app`, status `hatching`. Placeholder page, `pet.json`, `sprite.json` (moods listed, no frames), README with limits, LICENSE, AGENTS.md/CLAUDE.md.
-- Notices opened: findastra/astras-pet-apps#2 (register Rift Rabbit) and findastra/github-goldfish#1 (audit it).
-- `astras-pet-apps` was **not** changed. Its build was run on a clean clone of GitHub `main` (no content changes; render already current).
+- Notices opened: findastra/astras-pet-os#2 (register Rift Rabbit) and findastra/github-goldfish#1 (audit it).
+- `astras-pet-os` was **not** changed. Its build was run on a clean clone of GitHub `main` (no content changes; render already current).
 
-## Not done (belongs to the astras-pet-apps update)
+## Not done (belongs to the astras-pet-os update)
 
 1. **Register Rift Rabbit** in `pets.json`. Suggested entry (Astra approves the palette):
 
