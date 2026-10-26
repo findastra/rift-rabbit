@@ -40,7 +40,9 @@ namespace AstrasPetOs.RiftRabbit
         // x.4 QuestLHSync (Astra, 2026-10-25, "all recommended"): a rooted headset's own cameras see the base stations, so
         // no tracker rides on the headset.
         public static readonly string[] Modes = { "native", "space-calibrator", "space-override", "space-sync", "questlhsync" };
-        public static readonly string[] Streamers = { "virtual-desktop", "steam-link", "meta-horizon-link" };
+        // Meta Horizon Link by cable and Air Link are two choices of one program (Astra, 2026-10-26: "Separate Meta Horizon Link
+        // (cable) from the other option").
+        public static readonly string[] Streamers = { "virtual-desktop", "steam-link", "meta-horizon-link", "air-link" };
         public static readonly string[] Doubles = { "", "hip", "chest", "both" };
         // Object Track VR's objects (Astra, 2026-10-24); the program is not out yet.
         public static readonly string[] Objects = { "", "small-hoop", "large-hoop", "dance-pole" };
@@ -348,7 +350,7 @@ namespace AstrasPetOs.RiftRabbit
             add("addons", "SteamVR add-ons for this mode");
             add("open:" + streamer, VrPrograms.Find(streamer).Name);
             add("headset", "Put on the " + r.Device);
-            add("streamer-on-headset", (r.Streamer == "virtual-desktop" ? "Virtual Desktop" : r.Streamer == "steam-link" ? "Steam Link" : "Meta Horizon Link") + " on the " + r.Device);
+            add("streamer-on-headset", (r.Streamer == "virtual-desktop" ? "Virtual Desktop" : r.Streamer == "steam-link" ? "Steam Link" : r.Streamer == "air-link" ? "Air Link" : "Meta Horizon Link") + " on the " + r.Device);
             add("open:steamvr", "SteamVR");
             if (r.Face) add("open:vrcft", "VRCFaceTracking");
             add("open:ovr-advanced-settings", "OVR Advanced Settings");
@@ -359,7 +361,7 @@ namespace AstrasPetOs.RiftRabbit
             if (r.Mode == "space-sync") add("open:space-sync", "Space Sync (Follow SLAM HMD mode)");
             if (r.Mode == "questlhsync") add("questlhsync", "QuestLHSync lines up the trackers");
             if (r.Double != "") add("open:double-hip-tracker", "DoubleHip DoubleChest Tracker (" + (r.Double == "hip" ? "Double Hip" : r.Double == "chest" ? "Double Chest" : "Both") + ")");
-            if (!string.IsNullOrEmpty(r.Object)) add("object-track", "Object Track VR (" + (r.Object == "small-hoop" ? "Small Hoop" : r.Object == "large-hoop" ? "Large Hoop" : "Dance Pole") + ")");
+            if (!string.IsNullOrEmpty(r.Object)) add("object-track", "Object Track VR (" + (r.Object == "small-hoop" ? "Little Dance Hoop" : r.Object == "large-hoop" ? "Big Dance Hoop" : "Dance Pole") + ")");
             add("open:ovr-smooth-tracking", "OVR Smooth Tracking");
             if (r.Fov) add("open:base-station-fov", "Base Station FOV Viewer");
             if (r.Pole) add("open:vr-pole-overlay", "VR Pole Overlay");
@@ -420,7 +422,7 @@ namespace AstrasPetOs.RiftRabbit
         }
 
         // Steam Link needs only Steam on the PC; the other two have a program of their own.
-        public static string StreamerProgram(string streamer) { return streamer == "steam-link" ? "steam" : streamer; }
+        public static string StreamerProgram(string streamer) { return streamer == "steam-link" ? "steam" : streamer == "air-link" ? "meta-horizon-link" : streamer; }
 
         // What must be on before Start VRChat lights up: the headset, the Index controllers on her hands (none for hand
         // tracking), every tracker on a body spot (the head tracker only in the modes with one), the tracker on the object
