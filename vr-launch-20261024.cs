@@ -981,7 +981,8 @@ namespace AstrasPetOs.RiftRabbit
 
         static Dictionary<string, object> Data(Node n)
         {
-            var d = new Dictionary<string, object> { { "name", n.Name }, { "kind", n.Kind }, { "location", n.Location } };
+            // The device id too, so the page can tell a single-TT hub chip (VID_05E3&PID_0608) from a multi-TT one (2026-10-26).
+            var d = new Dictionary<string, object> { { "name", n.Name }, { "kind", n.Kind }, { "location", n.Location }, { "id", n.Id } };
             if (!string.IsNullOrEmpty(n.Serial)) d["serial"] = n.Serial;
             if (!string.IsNullOrEmpty(n.Tracker)) d["tracker"] = n.Tracker;
             if (n.Children.Count > 0) d["children"] = n.Children.OrderBy(c => c.Location).ThenBy(c => c.Name).Select(c => (object)Data(c)).ToList();
