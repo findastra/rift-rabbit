@@ -350,7 +350,7 @@ namespace AstrasPetOs.RiftRabbit
             add("addons", "SteamVR add-ons for this mode");
             add("open:" + streamer, VrPrograms.Find(streamer).Name);
             add("headset", "Put on the " + r.Device);
-            add("streamer-on-headset", (r.Streamer == "virtual-desktop" ? "Virtual Desktop" : r.Streamer == "steam-link" ? "Steam Link" : r.Streamer == "air-link" ? "Air Link" : "Meta Horizon Link") + " on the " + r.Device);
+            add("streamer-on-headset", (r.Streamer == "virtual-desktop" ? "Virtual Desktop" : r.Streamer == "steam-link" ? "Steam Link" : r.Streamer == "air-link" ? "Meta Horizon (Air Link)" : "Meta Horizon (Link Cable)") + " on the " + r.Device);
             add("open:steamvr", "SteamVR");
             if (r.Face) add("open:vrcft", "VRCFaceTracking");
             add("open:ovr-advanced-settings", "OVR Advanced Settings");
