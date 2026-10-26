@@ -34,7 +34,9 @@ namespace AstrasPetOs.RiftRabbit
         public bool Osc, Woojer;
 
         public static readonly string[] Headsets = { "quest-pro", "quest-3" };
-        public static readonly string[] Modes = { "native", "space-calibrator", "space-override", "space-sync" };
+        // x.4 QuestLHSync (Astra, 2026-10-25, "all recommended"): a rooted headset's own cameras see the base stations, so
+        // no tracker rides on the headset.
+        public static readonly string[] Modes = { "native", "space-calibrator", "space-override", "space-sync", "questlhsync" };
         public static readonly string[] Streamers = { "virtual-desktop", "steam-link", "meta-horizon-link" };
         public static readonly string[] Doubles = { "", "hip", "chest", "both" };
         // Object Track VR's objects (Astra, 2026-10-24); the program is not out yet.
@@ -42,8 +44,8 @@ namespace AstrasPetOs.RiftRabbit
 
         public bool Face { get { return Headset == "quest-pro"; } }
         public string Device { get { return Headset == "quest-pro" ? "Quest Pro" : "Quest 3"; } }
-        // Every mode but the native one has a tracker mounted on the headset.
-        public bool HeadTracker { get { return Mode != "native"; } }
+        // Modes x.1 to x.3 have a tracker mounted on the headset; Native and QuestLHSync have none.
+        public bool HeadTracker { get { return Mode != "native" && Mode != "questlhsync"; } }
 
         // Only the page's own fixed values; anything else is refused, so nothing a page sends reaches a command line.
         public static LaunchRequest From(IDictionary<string, object> body, out string problem)
@@ -262,12 +264,12 @@ namespace AstrasPetOs.RiftRabbit
         public const string PageDataName = "vr-launch-page-data.js";
         public const int OpenWaitSeconds = 60;
 
-        // Space Override and Space Sync are SteamVR drivers; a mode works only once its driver is registered with SteamVR
-        // (both were installed on 2026-10-24).
+        // Space Override, Space Sync and QuestLHSync are SteamVR drivers; a mode works only once its driver is registered
+        // with SteamVR (Space Override and Space Sync were installed on 2026-10-24; QuestLHSync waits for a rooted headset).
         public static bool Installed(string mode)
         {
             if (mode == "native" || mode == "space-calibrator") return true;
-            string want = mode == "space-override" ? "spaceoverride" : "spacesync";
+            string want = mode == "space-override" ? "spaceoverride" : mode == "space-sync" ? "spacesync" : "questlhsync";
             foreach (string dir in DriverFolders())
                 if (dir.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "").Contains(want)) return true;
             return false;
@@ -313,6 +315,7 @@ namespace AstrasPetOs.RiftRabbit
             else add("close:space-calibrator", "Space Calibrator stays closed");
             if (r.Mode == "space-override") add("open:space-override", "Space Override");
             if (r.Mode == "space-sync") add("open:space-sync", "Space Sync (Follow SLAM HMD mode)");
+            if (r.Mode == "questlhsync") add("questlhsync", "QuestLHSync lines up the trackers");
             if (r.Double != "") add("open:double-hip-tracker", "DoubleHip DoubleChest Tracker (" + (r.Double == "hip" ? "Double Hip" : r.Double == "chest" ? "Double Chest" : "Both") + ")");
             if (!string.IsNullOrEmpty(r.Object)) add("object-track", "Object Track VR (" + (r.Object == "small-hoop" ? "Small Hoop" : r.Object == "large-hoop" ? "Large Hoop" : "Dance Pole") + ")");
             add("open:ovr-smooth-tracking", "OVR Smooth Tracking");
@@ -325,11 +328,13 @@ namespace AstrasPetOs.RiftRabbit
             return steps;
         }
 
-        // SteamVR's add-ons (Settings > Startup / Shutdown > Manage Add-ons) for Space Override and Space Sync: on only in
-        // their own mode. Both are off otherwise, so SteamVR started by hand behaves as before they were installed. Only
-        // their two "enable" values in steamvr.vrsettings change; the rest of the file stays as SteamVR wrote it.
-        public static readonly string[] AddOns = { "spaceoverride", "spacesync" };
-        public static bool AddOnOn(string driver, string mode) { return (driver == "spaceoverride" && mode == "space-override") || (driver == "spacesync" && mode == "space-sync"); }
+        // SteamVR's add-ons (Settings > Startup / Shutdown > Manage Add-ons) for Space Override, Space Sync and QuestLHSync:
+        // on only in their own mode. They are off otherwise, so SteamVR started by hand behaves as before they were
+        // installed, and no two of them move the Lighthouse devices at once (QuestLHSync: "Two tools correcting the same
+        // devices fight each other"). Only their "enable" values in steamvr.vrsettings change; the rest of the file stays
+        // as SteamVR wrote it.
+        public static readonly string[] AddOns = { "spaceoverride", "spacesync", "questlhsync" };
+        public static bool AddOnOn(string driver, string mode) { return (driver == "spaceoverride" && mode == "space-override") || (driver == "spacesync" && mode == "space-sync") || (driver == "questlhsync" && mode == "questlhsync"); }
 
         public static string SteamVrSettings()
         {
@@ -363,7 +368,8 @@ namespace AstrasPetOs.RiftRabbit
             foreach (string driver in AddOns)
             {
                 var d = FarmEvent.Map(FarmEvent.Get(m, "driver_" + driver));
-                bool on = d == null || !Equals(FarmEvent.Get(d, "enable"), false);   // SteamVR loads an add-on unless told not to
+                // SteamVR loads an add-on unless told not to; QuestLHSync has nothing to load until it is installed.
+                bool on = d == null ? (driver != "questlhsync" || Installed("questlhsync")) : !Equals(FarmEvent.Get(d, "enable"), false);
                 if (on != AddOnOn(driver, mode)) return false;
             }
             return true;
@@ -735,7 +741,8 @@ namespace AstrasPetOs.RiftRabbit
                     {
                         string file = VrLaunch.SteamVrSettings();
                         string text = File.Exists(file) ? File.ReadAllText(file) : null;
-                        string which = Request.Mode == "space-override" ? "Space Override on, Space Sync off" : Request.Mode == "space-sync" ? "Space Sync on, Space Override off" : "Space Override and Space Sync off";
+                        string which = Request.Mode == "space-override" ? "Space Override on, Space Sync and QuestLHSync off" : Request.Mode == "space-sync" ? "Space Sync on, Space Override and QuestLHSync off" :
+                            Request.Mode == "questlhsync" ? "QuestLHSync on, Space Override and Space Sync off" : "Space Override, Space Sync and QuestLHSync off";
                         if (text != null && VrLaunch.AddOnsMatch(text, Request.Mode)) { Set(s, "done", which + "."); continue; }
                         if (Running("steamvr"))
                         {
@@ -788,6 +795,12 @@ namespace AstrasPetOs.RiftRabbit
                         }
                         string r = Open("double-hip-tracker");
                         Set(s, r == null ? "failed" : "done", note + (r ?? "It did not start within " + VrLaunch.OpenWaitSeconds + " seconds."));
+                        continue;
+                    }
+                    if (s.Id == "questlhsync")
+                    {
+                        // It runs inside SteamVR; her side is to look at each base station once so the cameras find them.
+                        Set(s, "done", "It runs inside SteamVR. Look at each base station until its page in the SteamVR dashboard says it is locked (about half a minute the first time).");
                         continue;
                     }
                     if (s.Id == "object-track")
@@ -965,7 +978,7 @@ namespace AstrasPetOs.RiftRabbit
                         if (r == null) return Status(current, problem);
                         problem = Settings.Missing(r);
                         if (problem != null) return Status(current, problem);
-                        if (!VrLaunch.Installed(r.Mode)) return Status(current, (r.Mode == "space-override" ? "Space Override" : "Space Sync") + " is not installed.");
+                        if (!VrLaunch.Installed(r.Mode)) return Status(current, (r.Mode == "space-override" ? "Space Override" : r.Mode == "space-sync" ? "Space Sync" : "QuestLHSync (it waits for a rooted headset)") + " is not installed.");
                         run = MakeRun(r);
                         return Status(run, null);
                     }
@@ -1089,6 +1102,10 @@ namespace AstrasPetOs.RiftRabbit
                 VrLaunch.WithIgnoreTrackers("--fps=144 --ignore-trackers=LHR-467E1FA2 --no-vr", new string[0]) == "--fps=144 --no-vr" &&
                 VrLaunch.WithIgnoreTrackers("", new[] { "LHR-6963FCE5" }) == "--ignore-trackers=LHR-6963FCE5" &&
                 VrLaunch.Stickers(new[] { "LHR-467E1FA2", "LHR-6963FCE5" }) == "[W] [H]");
+            var lh = VrLaunch.Plan(new LaunchRequest { Headset = "quest-pro", Mode = "questlhsync", Streamer = "virtual-desktop", Double = "" }).Select(s => s.Id).ToList();
+            check("vr-launch: x.4 QuestLHSync needs no head tracker, keeps Space Calibrator closed and opens no other overlay",
+                lh.Contains("questlhsync") && lh.IndexOf("questlhsync") > lh.IndexOf("open:steamvr") && lh.Contains("close:space-calibrator") && !lh.Contains("open:space-sync") && !lh.Contains("open:space-override") &&
+                !new LaunchRequest { Mode = "questlhsync" }.HeadTracker && VrLaunch.AddOnOn("questlhsync", "questlhsync") && !VrLaunch.AddOnOn("questlhsync", "space-sync") && !VrLaunch.AddOnOn("spacesync", "questlhsync"));
             string vrs = "{\n   \"driver_VirtualDesktop\" : {\n      \"disconnect_emulated_trackers\" : true\n   },\n   \"driver_spaceoverride\" : {\n      \"enable\" : false\n   },\n   \"steamvr\" : {\n      \"activateMultipleDrivers\" : true\n   }\n}\n";
             string syncOn = VrLaunch.WithAddOns(vrs, "space-sync");
             check("vr-launch: Space Sync's mode turns only Space Sync on, and leaves the rest of SteamVR's settings as they were",
