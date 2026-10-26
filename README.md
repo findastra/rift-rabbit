@@ -83,6 +83,16 @@ from SteamVR's own log (`Steam\logs\vrserver.txt`), read only.
   goes to `menu-20261021.json` and its mood to `mood-20261021.json` in `%LOCALAPPDATA%\astras-pet-os\rift-rabbit`,
   with Log Den's background-pet contract.
 
+## The dongle map
+
+Astra, 2026-10-26: "Can you add USBDeview ... and then also make a tool for us to run it and show a branch where each
+dongle is? There are so many ways to plug them in, we want to optimize it". The page's **dongle map** asks the launcher
+(`/usb-map`), which runs NirSoft's [USBDeview](https://www.nirsoft.net/utils/usb_devices_view.html) 3.10 from
+`Documents\USBDeview-3.10` (downloaded 2026-10-26; its SHA-256 matches NirSoft's) to list what is plugged in, and walks
+Windows' device tree from each device up to its USB controller. The page draws them as branches: controller, root hub,
+hubs, then each Watchman dongle (one per tracker or controller), Valve VR Radio and other device, with its port. When
+SteamVR's log names a dongle and a tracker on one line, the dongle shows its tracker. Read only.
+
 ## How to run it
 
 The page: double-click `index.html`. It needs no install and no build step.
@@ -102,7 +112,7 @@ bin\rift-rabbit-20261024.exe --startup
 | `--quit` | stop the running launcher |
 | `--tool wonderland-launchpad-v1.0-vr-launch-v1.0 on\|off` | switch the launcher ON or OFF |
 | `bin\rift-rabbit-check-20261024.exe --programs` | which of her VR programs are open and which VR devices SteamVR has on |
-| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (55) |
+| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (56) |
 
 ## Next steps
 
