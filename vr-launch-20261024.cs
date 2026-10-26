@@ -591,15 +591,20 @@ namespace AstrasPetOs.RiftRabbit
             return rest.Length == 0 ? list : list.Length == 0 ? rest : rest + " " + list;
         }
 
-        // "[W] [C] [H]": her stickers for the serials, from the device table.
-        public static string Stickers(string[] serials)
+        // "#9 Front Waist, #4 Back Waist and #8 Head": each tracker by its number and the spot it is on (Astra, 2026-10-26:
+        // the stickers alone read oddly, and one tracker has none).
+        public static string TrackerNames(string[] serials, Dictionary<string, string> worn)
         {
-            return string.Join(" ", serials.Select(x =>
+            var names = serials.Select(x =>
             {
                 var row = VrDevices.Table.Select(t => t.Split('|')).FirstOrDefault(f => f[2] == x);
-                var m = row == null ? null : Regex.Match(row[1], @"\[[^\]]*\]$");
-                return m != null && m.Success ? m.Value : x;
-            }));
+                if (row == null) return x;
+                var num = Regex.Match(row[0], @"\d+$");
+                string spot = worn == null ? null : worn.Where(kv => kv.Value == row[0]).Select(kv => kv.Key).FirstOrDefault();
+                string where = spot == null ? "" : " " + Spots.Name(spot).Split('[')[0].Trim().Split(new[] { ' ' }, 2).Last();
+                return (num.Success ? "#" + int.Parse(num.Value) : row[1]) + where;
+            }).ToList();
+            return names.Count <= 1 ? string.Join("", names) : string.Join(", ", names.Take(names.Count - 1)) + " and " + names.Last();
         }
 
         public static string SteamExe()
@@ -763,7 +768,7 @@ namespace AstrasPetOs.RiftRabbit
                     if (s.Id == "steam-options")
                     {
                         string[] ignore = settings.IgnoreFor(Request);
-                        string which = ignore.Length == 0 ? "No trackers ignored" : "Ignoring " + VrLaunch.Stickers(ignore);
+                        string which = ignore.Length == 0 ? "VRChat ignores no trackers" : "VRChat ignores " + VrLaunch.TrackerNames(ignore, settings.Worn);
                         string file = VrLaunch.SteamUserConfig();
                         string now = file == null ? null : VrLaunch.LaunchOptions(File.ReadAllText(file));
                         if (now == null) { Set(s, "failed", file == null ? "Steam's settings for your account were not found." : "Steam has no settings for VRChat yet: start VRChat once from Steam."); stop = true; continue; }
@@ -1306,7 +1311,7 @@ namespace AstrasPetOs.RiftRabbit
                 VrLaunch.WithIgnoreTrackers("--ignore-trackers=LHR-467E1FA2,LHR-6BA0C57A,LHR-28D88802,LHR-91D63DB2", new[] { "LHR-28D88802", "LHR-91D63DB2" }) == "--ignore-trackers=LHR-28D88802,LHR-91D63DB2" &&
                 VrLaunch.WithIgnoreTrackers("--fps=144 --ignore-trackers=LHR-467E1FA2 --no-vr", new string[0]) == "--fps=144 --no-vr" &&
                 VrLaunch.WithIgnoreTrackers("", new[] { "LHR-6963FCE5" }) == "--ignore-trackers=LHR-6963FCE5" &&
-                VrLaunch.Stickers(new[] { "LHR-467E1FA2", "LHR-6963FCE5" }) == "[W] [H]");
+                VrLaunch.TrackerNames(new[] { "LHR-467E1FA2", "LHR-6963FCE5" }, new Dictionary<string, string> { { "FW", "vive-tracker-09" }, { "H", "vive-tracker-08" } }) == "#9 Front Waist and #8 Head");
             var noFace = LaunchRequest.From(map("{'headset':'quest-pro','mode':'native','face':false,'fov':true,'pole':true}"), out problem);
             var steps = VrLaunch.Plan(noFace).Select(s => s.Id).ToList();
             check("vr-launch: face tracking is a choice on the Quest Pro (on unless the page says off); the two overlays open when ticked",
