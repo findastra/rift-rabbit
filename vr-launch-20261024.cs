@@ -31,7 +31,10 @@ namespace AstrasPetOs.RiftRabbit
     sealed class LaunchRequest
     {
         public string Headset, Mode, Streamer, Double, Object;
-        public bool Osc, Woojer;
+        // Face tracking is a choice on the Quest Pro (Astra, 2026-10-26: "I also do have the option of using facetracking or
+        // not on Quest Pro"); a page that does not say keeps it on. Base Station FOV Viewer and VR Pole Overlay open with the
+        // launch when ticked ("I would like to be able to turn these on at any moment").
+        public bool Osc, Woojer, FaceTracking = true, Fov, Pole;
 
         public static readonly string[] Headsets = { "quest-pro", "quest-3" };
         // x.4 QuestLHSync (Astra, 2026-10-25, "all recommended"): a rooted headset's own cameras see the base stations, so
@@ -42,7 +45,7 @@ namespace AstrasPetOs.RiftRabbit
         // Object Track VR's objects (Astra, 2026-10-24); the program is not out yet.
         public static readonly string[] Objects = { "", "small-hoop", "large-hoop", "dance-pole" };
 
-        public bool Face { get { return Headset == "quest-pro"; } }
+        public bool Face { get { return Headset == "quest-pro" && FaceTracking; } }
         public string Device { get { return Headset == "quest-pro" ? "Quest Pro" : "Quest 3"; } }
         // Modes x.1 to x.3 have a tracker mounted on the headset; Native and QuestLHSync have none.
         public bool HeadTracker { get { return Mode != "native" && Mode != "questlhsync"; } }
@@ -56,6 +59,7 @@ namespace AstrasPetOs.RiftRabbit
                 Headset = FarmEvent.Str(body, "headset"), Mode = FarmEvent.Str(body, "mode"),
                 Streamer = FarmEvent.Str(body, "streamer") ?? "virtual-desktop", Double = FarmEvent.Str(body, "double") ?? "", Object = FarmEvent.Str(body, "object") ?? "",
                 Osc = Equals(FarmEvent.Get(body, "osc"), true), Woojer = Equals(FarmEvent.Get(body, "woojer"), true),
+                FaceTracking = !Equals(FarmEvent.Get(body, "face"), false), Fov = Equals(FarmEvent.Get(body, "fov"), true), Pole = Equals(FarmEvent.Get(body, "pole"), true),
             };
             if (!Headsets.Contains(r.Headset)) problem = "Not one of the headsets.";
             else if (!Modes.Contains(r.Mode)) problem = "Not one of the modes.";
@@ -319,6 +323,8 @@ namespace AstrasPetOs.RiftRabbit
             if (r.Double != "") add("open:double-hip-tracker", "DoubleHip DoubleChest Tracker (" + (r.Double == "hip" ? "Double Hip" : r.Double == "chest" ? "Double Chest" : "Both") + ")");
             if (!string.IsNullOrEmpty(r.Object)) add("object-track", "Object Track VR (" + (r.Object == "small-hoop" ? "Small Hoop" : r.Object == "large-hoop" ? "Large Hoop" : "Dance Pole") + ")");
             add("open:ovr-smooth-tracking", "OVR Smooth Tracking");
+            if (r.Fov) add("open:base-station-fov", "Base Station FOV Viewer");
+            if (r.Pole) add("open:vr-pole-overlay", "VR Pole Overlay");
             if (r.Osc) add("open:oscgoesbrrr", "OSCGoesBrrr");
             // The Woojer vest (Astra, 2026-10-24: "We also need an option for Woojer vest (similar to OSCGoesBrrr)") has
             // no program of its own: it is a Bluetooth audio device ("Woojer Vest S3") that Voicemeeter plays to.
@@ -604,6 +610,17 @@ namespace AstrasPetOs.RiftRabbit
             File.WriteAllText(tmp, FarmEvent.Json().Serialize(m), new UTF8Encoding(false));
             File.Replace(tmp, configFile, null);
             return "Hip " + ((bool)m["useHip"] ? "on" : "off") + ", Chest " + ((bool)m["useChest"] ? "on" : "off") + ", " + pairs + ".";
+        }
+
+        // The overlays the page can switch on and off at any moment.
+        public static readonly string[] Overlays = { "base-station-fov", "vr-pole-overlay" };
+
+        public static string OpenNow(VrProgram w)
+        {
+            if (VrPrograms.Look(w).Running) return w.Name + " is already open.";
+            if (!VrPrograms.OpensSafely(w.Open)) return w.Name + " has no safe way to open.";
+            using (Process.Start(new ProcessStartInfo("explorer.exe", "\"" + w.Open + "\"") { UseShellExecute = false })) { }
+            return w.Name + " is opening.";
         }
 
         public static string PageDataFile() { return Path.Combine(LaunchSettings.Folder(), PageDataName); }
@@ -990,6 +1007,16 @@ namespace AstrasPetOs.RiftRabbit
                 case "/stop":
                     if (current != null) current.Stop();
                     return Status(current, null);
+                case "/overlay":
+                    {
+                        // The two overlays she switches on or off at any moment, from their ticks on the page: only these two.
+                        string id = FarmEvent.Str(req, "id");
+                        if (Array.IndexOf(VrLaunch.Overlays, id) < 0) return Error("Not one of the overlays.");
+                        var w = VrPrograms.Find(id);
+                        bool on = Equals(FarmEvent.Get(req, "on"), true);
+                        string said = on ? VrLaunch.OpenNow(w) : VrPrograms.Close(rabbit, w, 10);
+                        return new Dictionary<string, object> { { "ok", true }, { "id", id }, { "said", said }, { "running", VrPrograms.Look(w).Running } };
+                    }
                 case "/spots":
                     {
                         // tracker-strapper on the page: which device is on each spot, and the two Double pairs.
@@ -1102,6 +1129,12 @@ namespace AstrasPetOs.RiftRabbit
                 VrLaunch.WithIgnoreTrackers("--fps=144 --ignore-trackers=LHR-467E1FA2 --no-vr", new string[0]) == "--fps=144 --no-vr" &&
                 VrLaunch.WithIgnoreTrackers("", new[] { "LHR-6963FCE5" }) == "--ignore-trackers=LHR-6963FCE5" &&
                 VrLaunch.Stickers(new[] { "LHR-467E1FA2", "LHR-6963FCE5" }) == "[W] [H]");
+            var noFace = LaunchRequest.From(map("{'headset':'quest-pro','mode':'native','face':false,'fov':true,'pole':true}"), out problem);
+            var steps = VrLaunch.Plan(noFace).Select(s => s.Id).ToList();
+            check("vr-launch: face tracking is a choice on the Quest Pro (on unless the page says off); the two overlays open when ticked",
+                LaunchRequest.From(map("{'headset':'quest-pro','mode':'native'}"), out problem).Face && !noFace.Face && !steps.Contains("open:vrcft") &&
+                steps.IndexOf("open:base-station-fov") > steps.IndexOf("open:ovr-smooth-tracking") && steps.Contains("open:vr-pole-overlay") &&
+                VrLaunch.Overlays.All(o => VrPrograms.Find(o) != null && VrPrograms.OpensSafely(VrPrograms.Find(o).Open)));
             var lh = VrLaunch.Plan(new LaunchRequest { Headset = "quest-pro", Mode = "questlhsync", Streamer = "virtual-desktop", Double = "" }).Select(s => s.Id).ToList();
             check("vr-launch: x.4 QuestLHSync needs no head tracker, keeps Space Calibrator closed and opens no other overlay",
                 lh.Contains("questlhsync") && lh.IndexOf("questlhsync") > lh.IndexOf("open:steamvr") && lh.Contains("close:space-calibrator") && !lh.Contains("open:space-sync") && !lh.Contains("open:space-override") &&
