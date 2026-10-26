@@ -21,7 +21,8 @@ The rabbit has no finished art yet.
 
 Astra, 2026-10-24: "Maybe i need to turn off all of the launch dependencies so this can be the main control hub", then
 "Launching is done by Rift Rabbit". Rift Rabbit's pet program page (in the hub, `apps/pet-programs/rift-rabbit-20261018.html`)
-shows her VRChat setups: two headsets, four modes each (1.0 to 1.3 on the Quest Pro, 2.0 to 2.3 on the Quest 3). A web
+shows her VRChat setups: two headsets, five modes each (1.0 to 1.4 on the Quest Pro, 2.0 to 2.4 on the Quest 3; x.4 is
+QuestLHSync, for a headset rooted with Magisk: its cameras see the base stations, so no tracker rides on it). A web
 page cannot start programs, so each **Launch** button asks Rift Rabbit's launcher, `rift-rabbit-20261024.exe`
 (`wonderland-launchpad-v1.0-vr-launch-v1.0`), and the launcher does it in her order:
 
@@ -32,8 +33,9 @@ page cannot start programs, so each **Launch** button asks Rift Rabbit's launche
    writes its settings over when it closes, so when the list must change the launcher closes Steam, writes it, and
    opens Steam again ("close Steam, write, reopen"); it stops instead when SteamVR or VRChat is open. Her other launch
    options stay.
-1. SteamVR's add-ons for the mode: Space Override on only in x.2, Space Sync on only in x.3. SteamVR reads them when it
-   starts, so this happens before anything can start SteamVR.
+1. SteamVR's add-ons for the mode: Space Override on only in x.2, Space Sync on only in x.3, QuestLHSync
+   ([CreoleVR/QuestLHSync](https://github.com/CreoleVR/QuestLHSync)) on only in x.4, so no two of them move the
+   Lighthouse devices at once. SteamVR reads them when it starts, so this happens before anything can start SteamVR.
 2. The streamer (Virtual Desktop, Meta Horizon Link, or Steam for Steam Link).
 3. The headset and the streamer on it are her side: the step waits until SteamVR sees the headset, or until she presses
    **Next**.
@@ -41,7 +43,8 @@ page cannot start programs, so each **Launch** button asks Rift Rabbit's launche
    the launcher finds them already open and opens any that are not): VRCFaceTracking (Quest Pro only), OVR Advanced
    Settings, OVR Dynamic Resolution, and the mode's own program: Space
    Calibrator in x.1 (closed the way its X does in the other modes), Space Override's overlay in x.2, Space Sync's in
-   x.3.
+   x.3. In x.4 QuestLHSync runs inside SteamVR; she looks at each base station once so the headset's cameras find
+   them.
 5. DoubleHip DoubleChest Tracker (its Enable Hip / Enable Chest set for her choice first), Object Track VR (not out yet,
    so its step only says so), OVR Smooth Tracking, OSCGoesBrrr, and for the Woojer vest, Voicemeeter (the vest is a
    Bluetooth audio device that Voicemeeter plays to; whether it is connected is not checked).
@@ -99,7 +102,7 @@ bin\rift-rabbit-20261024.exe --startup
 | `--quit` | stop the running launcher |
 | `--tool wonderland-launchpad-v1.0-vr-launch-v1.0 on\|off` | switch the launcher ON or OFF |
 | `bin\rift-rabbit-check-20261024.exe --programs` | which of her VR programs are open and which VR devices SteamVR has on |
-| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (53) |
+| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (54) |
 
 ## Next steps
 
