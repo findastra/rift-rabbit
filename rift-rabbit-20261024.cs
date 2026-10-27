@@ -205,6 +205,9 @@ namespace AstrasPetOs.RiftRabbit
             @"oscgoesbrrr|OSCGoesBrrr|oscgoesbrrr||%LOCALAPPDATA%\Programs\OscGoesBrrr\OscGoesBrrr.exe",
             // Voicemeeter Potato (Voicemeeter Bug keeps it open): the Woojer vest plays what it sends.
             @"voicemeeter|Voicemeeter|voicemeeter8,voicemeeter8x64,voicemeeterpro,voicemeeterpro_x64,voicemeeter,voicemeeter_x64||shell:AppsFolder\{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}\VB\Voicemeeter\voicemeeter8.exe",
+            // Her two overlays (vr-gaming shortcuts): she switches them on or off at any moment from Rift Rabbit's page.
+            @"base-station-fov|Base Station FOV Viewer|base station fov viewer||%ProgramFiles%\Base Station FOV Viewer\Base Station FOV Viewer.exe",
+            @"vr-pole-overlay|VR Pole Overlay|vrpoleoverlay||%ProgramFiles%\VRPoleOverlay\VRPoleOverlay.exe",
             @"vrchat|VRChat|vrchat||steam://rungameid/438100",
         };
 

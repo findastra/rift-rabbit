@@ -31,18 +31,23 @@ namespace AstrasPetOs.RiftRabbit
     sealed class LaunchRequest
     {
         public string Headset, Mode, Streamer, Double, Object;
-        public bool Osc, Woojer;
+        // Face tracking is a choice on the Quest Pro (Astra, 2026-10-26: "I also do have the option of using facetracking or
+        // not on Quest Pro"); a page that does not say keeps it on. Base Station FOV Viewer and VR Pole Overlay open with the
+        // launch when ticked ("I would like to be able to turn these on at any moment").
+        public bool Osc, Woojer, FaceTracking = true, Fov, Pole;
 
         public static readonly string[] Headsets = { "quest-pro", "quest-3" };
         // x.4 QuestLHSync (Astra, 2026-10-25, "all recommended"): a rooted headset's own cameras see the base stations, so
         // no tracker rides on the headset.
         public static readonly string[] Modes = { "native", "space-calibrator", "space-override", "space-sync", "questlhsync" };
-        public static readonly string[] Streamers = { "virtual-desktop", "steam-link", "meta-horizon-link" };
+        // Meta Horizon Link by cable and Air Link are two choices of one program (Astra, 2026-10-26: "Separate Meta Horizon Link
+        // (cable) from the other option").
+        public static readonly string[] Streamers = { "virtual-desktop", "steam-link", "meta-horizon-link", "air-link" };
         public static readonly string[] Doubles = { "", "hip", "chest", "both" };
         // Object Track VR's objects (Astra, 2026-10-24); the program is not out yet.
         public static readonly string[] Objects = { "", "small-hoop", "large-hoop", "dance-pole" };
 
-        public bool Face { get { return Headset == "quest-pro"; } }
+        public bool Face { get { return Headset == "quest-pro" && FaceTracking; } }
         public string Device { get { return Headset == "quest-pro" ? "Quest Pro" : "Quest 3"; } }
         // Modes x.1 to x.3 have a tracker mounted on the headset; Native and QuestLHSync have none.
         public bool HeadTracker { get { return Mode != "native" && Mode != "questlhsync"; } }
@@ -56,17 +61,18 @@ namespace AstrasPetOs.RiftRabbit
                 Headset = FarmEvent.Str(body, "headset"), Mode = FarmEvent.Str(body, "mode"),
                 Streamer = FarmEvent.Str(body, "streamer") ?? "virtual-desktop", Double = FarmEvent.Str(body, "double") ?? "", Object = FarmEvent.Str(body, "object") ?? "",
                 Osc = Equals(FarmEvent.Get(body, "osc"), true), Woojer = Equals(FarmEvent.Get(body, "woojer"), true),
+                FaceTracking = !Equals(FarmEvent.Get(body, "face"), false), Fov = Equals(FarmEvent.Get(body, "fov"), true), Pole = Equals(FarmEvent.Get(body, "pole"), true),
             };
             if (!Headsets.Contains(r.Headset)) problem = "Not one of the headsets.";
             else if (!Modes.Contains(r.Mode)) problem = "Not one of the modes.";
             else if (!Streamers.Contains(r.Streamer)) problem = "Not one of the streamers.";
-            else if (!Doubles.Contains(r.Double)) problem = "Not one of the Double Hip / Double Chest choices.";
+            else if (!Doubles.Contains(r.Double) && r.Double != "auto") problem = "Not one of the Double Hip / Double Chest choices.";
             else if (!Objects.Contains(r.Object)) problem = "Not one of Object Track VR's objects.";
             return problem == null ? r : null;
         }
     }
 
-    // Where each device is worn: Astra's 27 spots (2026-10-25, her drawing: "27 locations tracking can occur, devices may
+    // Where each device is worn: Astra's 29 spots (2026-10-25, her drawing: "27 locations tracking can occur, devices may
     // vary"), set with tracker-strapper on the page. Numbers, codes and names are hers; facing her, her right is on the
     // left. 23 Face holds the headset, 21 and 22 the hands (an Index controller or the headset's hand tracking), every
     // other spot a Vive Tracker 3.0.
@@ -76,19 +82,20 @@ namespace AstrasPetOs.RiftRabbit
         public static readonly string[] Table = {
             "RF|1|Right Foot", "LF|2|Left Foot", "RA|3|Right Ankle", "LA|4|Left Ankle", "RK|5|Right Knee", "LK|6|Left Knee",
             "FW|7|Front Waist", "BW|8|Back Waist", "RS|9|Right Side", "LS|10|Left Side", "RFS|11|Right Front-Side",
-            "LFS|12|Left Front-Side", "RBS|13|Right Back-Side", "LBS|14|Left Back-Side", "FS|15|Front Sternum",
-            "BS|16|Back Sternum", "FC|17|Front Chest", "BC|18|Back Chest", "RE|19|Right Elbow", "LE|20|Left Elbow",
-            "RH|21|Right Hand", "LH|22|Left Hand", "F|23|Face", "H|24|Head", "DP|25|Dance Pole", "BDH|26|Big Dance Hoop",
-            "LDH|27|Little Dance Hoop" };
+            "LFS|12|Left Front-Side", "RBS|13|Right Back-Side", "LBS|14|Left Back-Side", "FD|15|Front Diaphragm",
+            "BD|16|Back Diaphragm", "FS|17|Front Sternum", "BS|18|Back Sternum", "RE|19|Right Elbow", "LE|20|Left Elbow",
+            "RH|21|Right Hand", "LH|22|Left Hand", "F|23|Face", "H|24|Head", "DP|25|Dance Pole", "BDH|26|Big Dance Hoop Side",
+            "BDT|27|Big Dance Hoop Top", "LDH|28|Little Dance Hoop Side", "LDT|29|Little Dance Hoop Top" };
         // Double Hip's pair is any two of the eight waist spots, usually Front and Back Waist (Astra, 2026-10-25: "the
         // double hip can be made from any of the 8 on the waist, but typical is FW, BW"); Double Chest's any two of the four
         // chest spots, usually Front and Back Chest.
         public static readonly string[] Waist = { "FW", "BW", "RS", "LS", "RFS", "LFS", "RBS", "LBS" };
-        public static readonly string[] Chest = { "FS", "BS", "FC", "BC" };
+        public static readonly string[] Chest = { "FD", "BD", "FS", "BS" };
         public const string Face = "F", Head = "H", RightHand = "RH", LeftHand = "LH";
         public const string HandTracking = "hand-tracking";
-        // Object Track VR's objects and the spot of the tracker on each.
-        public static readonly Dictionary<string, string> ObjectSpot = new Dictionary<string, string> { { "dance-pole", "DP" }, { "large-hoop", "BDH" }, { "small-hoop", "LDH" } };
+        // Object Track VR's objects and the spots a tracker may sit on for each: each hoop has two, its side and its top
+        // (Astra, 2026-10-26, her drawing: "+2 more positions"); one tracker on either is enough.
+        public static readonly Dictionary<string, string[]> ObjectSpots = new Dictionary<string, string[]> { { "dance-pole", new[] { "DP" } }, { "large-hoop", new[] { "BDH", "BDT" } }, { "small-hoop", new[] { "LDH", "LDT" } } };
 
         public static bool Known(string code) { return Table.Any(t => t.Split('|')[0] == code); }
         public static string Name(string code)
@@ -102,8 +109,10 @@ namespace AstrasPetOs.RiftRabbit
         public static bool Fits(string code, string device)
         {
             if (code == Face) return LaunchRequest.Headsets.Contains(device);
-            if (code == RightHand) return device == "index-controller-right" || device == HandTracking;
-            if (code == LeftHand) return device == "index-controller-left" || device == HandTracking;
+            // A hand holds an Index controller, the Quest Pro's or Quest 3's own controller, or nothing but the headset's
+            // hand tracking (Astra, 2026-10-26: "You need the index controllers, Qpro controllers, q3 controllers, too").
+            if (code == RightHand) return device == "index-controller-right" || device == "quest-pro-controller-right" || device == "quest-3-controller-right" || device == HandTracking;
+            if (code == LeftHand) return device == "index-controller-left" || device == "quest-pro-controller-left" || device == "quest-3-controller-left" || device == HandTracking;
             return Known(code) && Tracker(device);
         }
 
@@ -124,13 +133,13 @@ namespace AstrasPetOs.RiftRabbit
         // Device on each spot (Astra, 2026-10-25: "the body spots guess is right"; her stickers in brackets).
         public Dictionary<string, string> Worn = Defaults();
         // The spots of DoubleHip DoubleChest Tracker's two pairs, A first (her app: Hip [W] + [C], Chest [ ] + [M]).
-        public string[] HipSpots = { "FW", "BW" }, ChestSpots = { "FC", "BC" };
+        public string[] HipSpots = { "FW", "BW" }, ChestSpots = { "FS", "BS" };
         public string DoubleHipTracker = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "DoubleHip DoubleChest", "DoubleHipTracker-V1.3.0", "double-hip-tracker.exe");
 
         public static Dictionary<string, string> Defaults()
         {
             return new Dictionary<string, string> {
-                { "F", "quest-pro" }, { "H", "vive-tracker-08" }, { "FC", "vive-tracker-05" }, { "BC", "vive-tracker-03" },
+                { "F", "quest-pro" }, { "H", "vive-tracker-08" }, { "FS", "vive-tracker-05" }, { "BS", "vive-tracker-03" },
                 { "FW", "vive-tracker-09" }, { "BW", "vive-tracker-04" }, { "RK", "vive-tracker-06" }, { "LK", "vive-tracker-02" },
                 { "RF", "vive-tracker-01" }, { "LF", "vive-tracker-07" }, { "RH", "index-controller-right" }, { "LH", "index-controller-left" } };
         }
@@ -167,7 +176,14 @@ namespace AstrasPetOs.RiftRabbit
                     if (port is int && (int)port > 1024 && (int)port < 65536) s.Port = (int)port;
                     s.Code = FarmEvent.Str(m, "code");
                     // A file from before the spots (2026-10-24) gets today's spots once.
-                    if (FarmEvent.Get(m, "spots") == null || s.SetSpots(FarmEvent.Map(FarmEvent.Get(m, "spots")), FarmEvent.Get(m, "double_hip_spots"), FarmEvent.Get(m, "double_chest_spots")) != null) changed = true;
+                    // 17 and 18 were Front and Back Chest [FC]/[BC] until 2026-10-26, now Front and Back Sternum [FS]/[BS]
+                    // (Astra: "Maybe it needs to be Front Sternum and Front Diaphragm, and Back Sternum and Back Diaphragm").
+                    var spots = FarmEvent.Map(FarmEvent.Get(m, "spots"));
+                    if (spots != null) foreach (var old in new[] { "FC", "BC" }) if (spots.ContainsKey(old)) { spots[old == "FC" ? "FS" : "BS"] = spots[old]; spots.Remove(old); changed = true; }
+                    object chestPair = FarmEvent.Get(m, "double_chest_spots");
+                    var cp = chestPair as System.Collections.IEnumerable;
+                    if (cp != null && !(chestPair is string)) chestPair = cp.Cast<object>().Select(o => (object)((o as string) == "FC" ? "FS" : (o as string) == "BC" ? "BS" : o)).ToList();
+                    if (spots == null || s.SetSpots(spots, FarmEvent.Get(m, "double_hip_spots"), chestPair) != null) changed = true;
                     string dht = FarmEvent.Str(m, "double_hip_tracker");
                     if (!string.IsNullOrEmpty(dht) && Path.IsPathRooted(dht) && dht.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) s.DoubleHipTracker = dht;
                 }
@@ -186,7 +202,7 @@ namespace AstrasPetOs.RiftRabbit
             return list.Cast<object>().Select(o => o as string).ToArray();
         }
 
-        // The spots and pairs from the page (or the file): only her 27 spots, only a device that fits each, each device
+        // The spots and pairs from the page (or the file): only her 29 spots, only a device that fits each, each device
         // once (the headset's hand tracking may be on both hands), and each pair two different spots of its own part of
         // the body. Anything else changes nothing and says why.
         public string SetSpots(IDictionary<string, object> spots, object hip, object chest)
@@ -196,7 +212,7 @@ namespace AstrasPetOs.RiftRabbit
             foreach (var kv in spots)
             {
                 string device = kv.Value as string;
-                if (!Spots.Known(kv.Key)) return "Not one of the 27 spots: " + kv.Key + ".";
+                if (!Spots.Known(kv.Key)) return "Not one of the 29 spots: " + kv.Key + ".";
                 if (string.IsNullOrEmpty(device)) continue;
                 if (!Spots.Fits(kv.Key, device)) return "That device does not go on " + Spots.Name(kv.Key) + ".";
                 if (device != Spots.HandTracking && worn.ContainsValue(device)) return "One device is on two spots.";
@@ -206,7 +222,35 @@ namespace AstrasPetOs.RiftRabbit
             if (h.Length != 2 || h[0] == h[1] || !h.All(x => Spots.Waist.Contains(x))) return "Double Hip's pair is two different waist spots.";
             if (c.Length != 2 || c[0] == c[1] || !c.All(x => Spots.Chest.Contains(x))) return "Double Chest's pair is two different chest spots.";
             Worn = worn; HipSpots = h; ChestSpots = c;
+            AutoPairs();
             return null;
+        }
+
+        // The pairs follow the spots by themselves (Astra, 2026-10-26: "I dont want to have to mess with double hip I want
+        // you do fix that program for me when I launch"): a pair whose two spots both have trackers stays; otherwise the
+        // usual pair (Front and Back Waist, Front and Back Chest) when both are worn, else the first two worn spots of the
+        // group.
+        public void AutoPairs()
+        {
+            HipSpots = AutoPair(HipSpots, Spots.Waist, new[] { "FW", "BW" });
+            ChestSpots = AutoPair(ChestSpots, new[] { "FS", "BS", "FD", "BD" }, new[] { "FS", "BS" });
+        }
+
+        string[] AutoPair(string[] now, string[] group, string[] usual)
+        {
+            Func<string, bool> worn = code => Spots.Tracker(At(code));
+            if (now.Length == 2 && now.All(worn)) return now;
+            if (usual.All(worn)) return usual;
+            var found = group.Where(worn).Take(2).ToArray();
+            return found.Length == 2 ? found : now;
+        }
+
+        // The Double choice the spots make: Double Hip when the hip pair is worn, Double Chest when the chest pair is,
+        // Both when both are, Off when neither.
+        public string AutoDouble()
+        {
+            bool hip = HipPair.Length == 2, chest = ChestPair.Length == 2;
+            return hip && chest ? "both" : hip ? "hip" : chest ? "chest" : "";
         }
 
         // What a launch needs that has no device on its spot; null when it has everything.
@@ -216,7 +260,7 @@ namespace AstrasPetOs.RiftRabbit
             if (r.HeadTracker && HeadTracker.Length == 0) return "This mode needs a tracker on " + Spots.Name(Spots.Head) + ".";
             if ((r.Double == "hip" || r.Double == "both") && HipPair.Length == 0) return "Double Hip needs trackers on " + string.Join(" and ", HipSpots.Select(Spots.Name)) + ".";
             if ((r.Double == "chest" || r.Double == "both") && ChestPair.Length == 0) return "Double Chest needs trackers on " + string.Join(" and ", ChestSpots.Select(Spots.Name)) + ".";
-            if (!string.IsNullOrEmpty(r.Object) && SerialAt(Spots.ObjectSpot[r.Object]).Length == 0) return "That object needs a tracker on " + Spots.Name(Spots.ObjectSpot[r.Object]) + ".";
+            if (!string.IsNullOrEmpty(r.Object) && Spots.ObjectSpots[r.Object].All(c => SerialAt(c).Length == 0)) return "That object needs a tracker on " + string.Join(" or ", Spots.ObjectSpots[r.Object].Select(Spots.Name)) + ".";
             return null;
         }
 
@@ -306,7 +350,7 @@ namespace AstrasPetOs.RiftRabbit
             add("addons", "SteamVR add-ons for this mode");
             add("open:" + streamer, VrPrograms.Find(streamer).Name);
             add("headset", "Put on the " + r.Device);
-            add("streamer-on-headset", (r.Streamer == "virtual-desktop" ? "Virtual Desktop" : r.Streamer == "steam-link" ? "Steam Link" : "Meta Horizon Link") + " on the " + r.Device);
+            add("streamer-on-headset", (r.Streamer == "virtual-desktop" ? "Virtual Desktop" : r.Streamer == "steam-link" ? "Steam Link" : r.Streamer == "air-link" ? "Meta Horizon (Air Link)" : "Meta Horizon (Link Cable)") + " on the " + r.Device);
             add("open:steamvr", "SteamVR");
             if (r.Face) add("open:vrcft", "VRCFaceTracking");
             add("open:ovr-advanced-settings", "OVR Advanced Settings");
@@ -317,8 +361,10 @@ namespace AstrasPetOs.RiftRabbit
             if (r.Mode == "space-sync") add("open:space-sync", "Space Sync (Follow SLAM HMD mode)");
             if (r.Mode == "questlhsync") add("questlhsync", "QuestLHSync lines up the trackers");
             if (r.Double != "") add("open:double-hip-tracker", "DoubleHip DoubleChest Tracker (" + (r.Double == "hip" ? "Double Hip" : r.Double == "chest" ? "Double Chest" : "Both") + ")");
-            if (!string.IsNullOrEmpty(r.Object)) add("object-track", "Object Track VR (" + (r.Object == "small-hoop" ? "Small Hoop" : r.Object == "large-hoop" ? "Large Hoop" : "Dance Pole") + ")");
+            if (!string.IsNullOrEmpty(r.Object)) add("object-track", "Object Track VR (" + (r.Object == "small-hoop" ? "Little Dance Hoop" : r.Object == "large-hoop" ? "Big Dance Hoop" : "Dance Pole") + ")");
             add("open:ovr-smooth-tracking", "OVR Smooth Tracking");
+            if (r.Fov) add("open:base-station-fov", "Base Station FOV Viewer");
+            if (r.Pole) add("open:vr-pole-overlay", "VR Pole Overlay");
             if (r.Osc) add("open:oscgoesbrrr", "OSCGoesBrrr");
             // The Woojer vest (Astra, 2026-10-24: "We also need an option for Woojer vest (similar to OSCGoesBrrr)") has
             // no program of its own: it is a Bluetooth audio device ("Woojer Vest S3") that Voicemeeter plays to.
@@ -376,7 +422,7 @@ namespace AstrasPetOs.RiftRabbit
         }
 
         // Steam Link needs only Steam on the PC; the other two have a program of their own.
-        public static string StreamerProgram(string streamer) { return streamer == "steam-link" ? "steam" : streamer; }
+        public static string StreamerProgram(string streamer) { return streamer == "steam-link" ? "steam" : streamer == "air-link" ? "meta-horizon-link" : streamer; }
 
         // What must be on before Start VRChat lights up: the headset, the Index controllers on her hands (none for hand
         // tracking), every tracker on a body spot (the head tracker only in the modes with one), the tracker on the object
@@ -390,7 +436,7 @@ namespace AstrasPetOs.RiftRabbit
             {
                 if (!Spots.Tracker(s.At(code))) continue;
                 if (code == Spots.Head && !r.HeadTracker) continue;
-                if (Spots.ObjectSpot.ContainsValue(code) && (string.IsNullOrEmpty(r.Object) || Spots.ObjectSpot[r.Object] != code)) continue;
+                if (Spots.ObjectSpots.Values.Any(v => v.Contains(code)) && (string.IsNullOrEmpty(r.Object) || !Spots.ObjectSpots[r.Object].Contains(code))) continue;
                 var row = VrDevices.Table.Select(t => t.Split('|')).First(f => f[0] == s.At(code));
                 need.Add(new KeyValuePair<string, string>(row[0], row[1] + " on " + Spots.Name(code)));
             }
@@ -545,15 +591,20 @@ namespace AstrasPetOs.RiftRabbit
             return rest.Length == 0 ? list : list.Length == 0 ? rest : rest + " " + list;
         }
 
-        // "[W] [C] [H]": her stickers for the serials, from the device table.
-        public static string Stickers(string[] serials)
+        // "#9 Front Waist, #4 Back Waist and #8 Head": each tracker by its number and the spot it is on (Astra, 2026-10-26:
+        // the stickers alone read oddly, and one tracker has none).
+        public static string TrackerNames(string[] serials, Dictionary<string, string> worn)
         {
-            return string.Join(" ", serials.Select(x =>
+            var names = serials.Select(x =>
             {
                 var row = VrDevices.Table.Select(t => t.Split('|')).FirstOrDefault(f => f[2] == x);
-                var m = row == null ? null : Regex.Match(row[1], @"\[[^\]]*\]$");
-                return m != null && m.Success ? m.Value : x;
-            }));
+                if (row == null) return x;
+                var num = Regex.Match(row[0], @"\d+$");
+                string spot = worn == null ? null : worn.Where(kv => kv.Value == row[0]).Select(kv => kv.Key).FirstOrDefault();
+                string where = spot == null ? "" : " " + Spots.Name(spot).Split('[')[0].Trim().Split(new[] { ' ' }, 2).Last();
+                return (num.Success ? "#" + int.Parse(num.Value) : row[1]) + where;
+            }).ToList();
+            return names.Count <= 1 ? string.Join("", names) : string.Join(", ", names.Take(names.Count - 1)) + " and " + names.Last();
         }
 
         public static string SteamExe()
@@ -604,6 +655,17 @@ namespace AstrasPetOs.RiftRabbit
             File.WriteAllText(tmp, FarmEvent.Json().Serialize(m), new UTF8Encoding(false));
             File.Replace(tmp, configFile, null);
             return "Hip " + ((bool)m["useHip"] ? "on" : "off") + ", Chest " + ((bool)m["useChest"] ? "on" : "off") + ", " + pairs + ".";
+        }
+
+        // The overlays the page can switch on and off at any moment.
+        public static readonly string[] Overlays = { "base-station-fov", "vr-pole-overlay" };
+
+        public static string OpenNow(VrProgram w)
+        {
+            if (VrPrograms.Look(w).Running) return w.Name + " is already open.";
+            if (!VrPrograms.OpensSafely(w.Open)) return w.Name + " has no safe way to open.";
+            using (Process.Start(new ProcessStartInfo("explorer.exe", "\"" + w.Open + "\"") { UseShellExecute = false })) { }
+            return w.Name + " is opening.";
         }
 
         public static string PageDataFile() { return Path.Combine(LaunchSettings.Folder(), PageDataName); }
@@ -706,7 +768,7 @@ namespace AstrasPetOs.RiftRabbit
                     if (s.Id == "steam-options")
                     {
                         string[] ignore = settings.IgnoreFor(Request);
-                        string which = ignore.Length == 0 ? "No trackers ignored" : "Ignoring " + VrLaunch.Stickers(ignore);
+                        string which = ignore.Length == 0 ? "VRChat ignores no trackers" : "VRChat ignores " + VrLaunch.TrackerNames(ignore, settings.Worn);
                         string file = VrLaunch.SteamUserConfig();
                         string now = file == null ? null : VrLaunch.LaunchOptions(File.ReadAllText(file));
                         if (now == null) { Set(s, "failed", file == null ? "Steam's settings for your account were not found." : "Steam has no settings for VRChat yet: start VRChat once from Steam."); stop = true; continue; }
@@ -873,6 +935,140 @@ namespace AstrasPetOs.RiftRabbit
         }
     }
 
+    // Where each dongle is plugged in (Astra, 2026-10-26: "Can you add USBDeview ... and then also make a tool for us to run
+    // it and show a branch where each dongle is? There are so many ways to plug them in, we want to optimize it").
+    // NirSoft's USBDeview (Documents\USBDeview-3.10) lists what is plugged in; Windows' own device tree gives each one's
+    // hub, root hub and USB controller, so the page can draw them as branches. SteamVR's log says which tracker a dongle
+    // carries when it has seen them together. Read only: nothing is changed.
+    static class UsbMap
+    {
+        public static string UsbDeview() { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "USBDeview-3.10", "USBDeview.exe"); }
+
+        [System.Runtime.InteropServices.DllImport("cfgmgr32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern int CM_Locate_DevNodeW(out uint devInst, string deviceId, int flags);
+        [System.Runtime.InteropServices.DllImport("cfgmgr32.dll")]
+        static extern int CM_Get_Parent(out uint parent, uint devInst, int flags);
+        [System.Runtime.InteropServices.DllImport("cfgmgr32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern int CM_Get_Device_IDW(uint devInst, StringBuilder buffer, int length, int flags);
+        [System.Runtime.InteropServices.DllImport("cfgmgr32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern int CM_Get_DevNode_Registry_PropertyW(uint devInst, int property, out int type, StringBuilder buffer, ref int length, int flags);
+
+        const int DeviceDesc = 0x01, FriendlyName = 0x0D, LocationInformation = 0x0E;
+
+        static string Prop(uint node, int property)
+        {
+            var sb = new StringBuilder(512); int length = sb.Capacity * 2, type;
+            return CM_Get_DevNode_Registry_PropertyW(node, property, out type, sb, ref length, 0) == 0 ? sb.ToString() : "";
+        }
+        static string Id(uint node) { var sb = new StringBuilder(512); return CM_Get_Device_IDW(node, sb, sb.Capacity, 0) == 0 ? sb.ToString() : ""; }
+        static string Name(uint node) { string n = Prop(node, FriendlyName); return n.Length > 0 ? n : Prop(node, DeviceDesc); }
+
+        // What a device is, from its USB ids and name.
+        public static string Kind(string id, string name)
+        {
+            string u = (id ?? "").ToUpperInvariant();
+            if (u.Contains("VID_28DE&PID_2101")) return "tracker-dongle";     // Watchman Dongle: one tracker or controller each
+            if (u.Contains("VID_28DE&PID_2102")) return "radio";              // Valve VR Radio
+            if (u.Contains("VID_28DE")) return "valve";
+            if (u.Contains("VID_0BB4")) return "htc";
+            if (u.StartsWith("PCI\\")) return "controller";
+            if (u.Contains("ROOT_HUB")) return "root-hub";
+            if ((name ?? "").IndexOf("hub", StringComparison.OrdinalIgnoreCase) >= 0) return "hub";
+            return "device";
+        }
+
+        sealed class Node { public string Id, Name, Kind, Location, Serial, Tracker; public List<Node> Children = new List<Node>(); }
+
+        static Dictionary<string, object> Data(Node n)
+        {
+            // The device id too, so the page can tell a single-TT hub chip (VID_05E3&PID_0608) from a multi-TT one (2026-10-26).
+            var d = new Dictionary<string, object> { { "name", n.Name }, { "kind", n.Kind }, { "location", n.Location }, { "id", n.Id } };
+            if (!string.IsNullOrEmpty(n.Serial)) d["serial"] = n.Serial;
+            if (!string.IsNullOrEmpty(n.Tracker)) d["tracker"] = n.Tracker;
+            if (n.Children.Count > 0) d["children"] = n.Children.OrderBy(c => c.Location).ThenBy(c => c.Name).Select(c => (object)Data(c)).ToList();
+            return d;
+        }
+
+        // Which tracker each dongle carries, when SteamVR's log names a dongle serial and a tracker serial on one line.
+        public static Dictionary<string, string> Pairings(IEnumerable<string> lines, IEnumerable<string> dongles)
+        {
+            var found = new Dictionary<string, string>();
+            var serial = new Regex(@"\b(LHR-[0-9A-F]{8})\b");
+            foreach (string line in lines)
+            {
+                var m = serial.Match(line);
+                if (!m.Success) continue;
+                foreach (string d in dongles) if (line.Contains(d)) found[d] = m.Groups[1].Value;
+            }
+            return found;
+        }
+
+        // The connected devices from USBDeview's XML export: instance id, name, serial.
+        public static List<string[]> Devices(string xml)
+        {
+            var doc = new System.Xml.XmlDocument();
+            doc.LoadXml(xml);
+            var list = new List<string[]>();
+            foreach (System.Xml.XmlNode item in doc.SelectNodes("//item"))
+            {
+                Func<string, string> f = k => { var n = item.SelectSingleNode(k); return n == null ? "" : n.InnerText.Trim(); };
+                // Whole devices only: a device's interfaces (MI_xx) and HID collections draw no branch of their own.
+                if (f("connected") != "Yes" || f("instance_id").Length == 0 || f("instance_id").Contains("&MI_") || !f("instance_id").StartsWith("USB\\", StringComparison.OrdinalIgnoreCase)) continue;
+                list.Add(new[] { f("instance_id"), f("device_name").Length > 0 ? f("device_name") : f("description"), f("serial_number") });
+            }
+            return list;
+        }
+
+        public static Dictionary<string, object> Scan(string exe, string logFolder)
+        {
+            if (!File.Exists(exe)) return new Dictionary<string, object> { { "ok", false }, { "said", "USBDeview is not in Documents\\USBDeview-3.10." } };
+            string xmlFile = Path.Combine(Path.GetTempPath(), "rift-rabbit-usb-" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".xml");
+            try
+            {
+                using (var p = Process.Start(new ProcessStartInfo(exe, "/DisplayDisconnected 0 /sxml \"" + xmlFile + "\"") { UseShellExecute = false, CreateNoWindow = true }))
+                    if (!p.WaitForExit(30000)) return new Dictionary<string, object> { { "ok", false }, { "said", "USBDeview did not finish within 30 seconds." } };
+                var devices = Devices(File.ReadAllText(xmlFile));
+                var nodes = new Dictionary<string, Node>(StringComparer.OrdinalIgnoreCase);
+                var roots = new List<Node>();
+                foreach (var dev in devices)
+                {
+                    uint dn;
+                    if (CM_Locate_DevNodeW(out dn, dev[0], 0) != 0) continue;
+                    Node child = null;
+                    // Walk up from the device to its USB controller, joining branches already seen.
+                    for (int depth = 0; depth < 12; depth++)
+                    {
+                        string id = Id(dn);
+                        if (id.Length == 0) break;
+                        bool known = nodes.ContainsKey(id);
+                        Node n = known ? nodes[id] : new Node { Id = id, Name = Name(dn), Kind = Kind(id, Name(dn)), Location = Prop(dn, LocationInformation) };
+                        if (depth == 0 && dev[1].Length > 0 && !dev[1].StartsWith("Port_#")) n.Name = dev[1];
+                        if (depth == 0 && dev[2].Length > 0) n.Serial = dev[2];
+                        if (child != null && !n.Children.Contains(child)) n.Children.Add(child);
+                        if (known) { child = null; break; }
+                        nodes[id] = n;
+                        if (n.Kind == "controller") { roots.Add(n); child = null; break; }
+                        child = n;
+                        uint parent;
+                        if (CM_Get_Parent(out parent, dn, 0) != 0) break;
+                        dn = parent;
+                    }
+                }
+                var dongles = nodes.Values.Where(n => n.Kind == "tracker-dongle" && !string.IsNullOrEmpty(n.Serial)).ToList();
+                var lines = new List<string>();
+                foreach (string f in new[] { "vrserver.previous.txt", "vrserver.txt" })
+                    try { string path = Path.Combine(logFolder, f); if (File.Exists(path)) lines.AddRange(File.ReadAllLines(path)); } catch (Exception) { }
+                var paired = Pairings(lines, dongles.Select(n => n.Serial));
+                foreach (var n in dongles) { string t; if (paired.TryGetValue(n.Serial, out t)) n.Tracker = t; }
+                return new Dictionary<string, object> {
+                    { "ok", true }, { "time", FarmEvent.Now(DateTimeOffset.Now) }, { "dongles", dongles.Count },
+                    { "controllers", roots.OrderBy(r => r.Name).Select(r => (object)Data(r)).ToList() } };
+            }
+            catch (Exception e) { return new Dictionary<string, object> { { "ok", false }, { "said", "The scan stopped: " + e.Message } }; }
+            finally { try { File.Delete(xmlFile); } catch (Exception) { } }
+        }
+    }
+
     // The page's way in: plain HTTP on 127.0.0.1 only (a loopback socket, so nothing off this PC can reach it), and every
     // request carries the code from the launcher's settings, which only a page opened from this PC can read. Requests
     // from a web site (an Origin that is not a file or this PC) are refused before anything else.
@@ -976,6 +1172,8 @@ namespace AstrasPetOs.RiftRabbit
                         string problem;
                         var r = LaunchRequest.From(req, out problem);
                         if (r == null) return Status(current, problem);
+                        // "auto": the Double choice her spots make (2026-10-26).
+                        if (r.Double == "auto") r.Double = Settings.AutoDouble();
                         problem = Settings.Missing(r);
                         if (problem != null) return Status(current, problem);
                         if (!VrLaunch.Installed(r.Mode)) return Status(current, (r.Mode == "space-override" ? "Space Override" : r.Mode == "space-sync" ? "Space Sync" : "QuestLHSync (it waits for a rooted headset)") + " is not installed.");
@@ -990,6 +1188,19 @@ namespace AstrasPetOs.RiftRabbit
                 case "/stop":
                     if (current != null) current.Stop();
                     return Status(current, null);
+                case "/overlay":
+                    {
+                        // The two overlays she switches on or off at any moment, from their ticks on the page: only these two.
+                        string id = FarmEvent.Str(req, "id");
+                        if (Array.IndexOf(VrLaunch.Overlays, id) < 0) return Error("Not one of the overlays.");
+                        var w = VrPrograms.Find(id);
+                        bool on = Equals(FarmEvent.Get(req, "on"), true);
+                        string said = on ? VrLaunch.OpenNow(w) : VrPrograms.Close(rabbit, w, 10);
+                        return new Dictionary<string, object> { { "ok", true }, { "id", id }, { "said", said }, { "running", VrPrograms.Look(w).Running } };
+                    }
+                case "/usb-map":
+                    // tracker-strapper's neighbour on the page: which dongle sits on which hub and USB controller.
+                    return UsbMap.Scan(UsbMap.UsbDeview(), Path.GetDirectoryName(VrDevices.LogFile()));
                 case "/spots":
                     {
                         // tracker-strapper on the page: which device is on each spot, and the two Double pairs.
@@ -1101,7 +1312,20 @@ namespace AstrasPetOs.RiftRabbit
                 VrLaunch.WithIgnoreTrackers("--ignore-trackers=LHR-467E1FA2,LHR-6BA0C57A,LHR-28D88802,LHR-91D63DB2", new[] { "LHR-28D88802", "LHR-91D63DB2" }) == "--ignore-trackers=LHR-28D88802,LHR-91D63DB2" &&
                 VrLaunch.WithIgnoreTrackers("--fps=144 --ignore-trackers=LHR-467E1FA2 --no-vr", new string[0]) == "--fps=144 --no-vr" &&
                 VrLaunch.WithIgnoreTrackers("", new[] { "LHR-6963FCE5" }) == "--ignore-trackers=LHR-6963FCE5" &&
-                VrLaunch.Stickers(new[] { "LHR-467E1FA2", "LHR-6963FCE5" }) == "[W] [H]");
+                VrLaunch.TrackerNames(new[] { "LHR-467E1FA2", "LHR-6963FCE5" }, new Dictionary<string, string> { { "FW", "vive-tracker-09" }, { "H", "vive-tracker-08" } }) == "#9 Front Waist and #8 Head");
+            var noFace = LaunchRequest.From(map("{'headset':'quest-pro','mode':'native','face':false,'fov':true,'pole':true}"), out problem);
+            var steps = VrLaunch.Plan(noFace).Select(s => s.Id).ToList();
+            check("vr-launch: face tracking is a choice on the Quest Pro (on unless the page says off); the two overlays open when ticked",
+                LaunchRequest.From(map("{'headset':'quest-pro','mode':'native'}"), out problem).Face && !noFace.Face && !steps.Contains("open:vrcft") &&
+                steps.IndexOf("open:base-station-fov") > steps.IndexOf("open:ovr-smooth-tracking") && steps.Contains("open:vr-pole-overlay") &&
+                VrLaunch.Overlays.All(o => VrPrograms.Find(o) != null && VrPrograms.OpensSafely(VrPrograms.Find(o).Open)));
+            string usbXml = "<?xml version=\"1.0\"?><usb_devices_list><item><device_name>Watchman Dongle</device_name><connected>Yes</connected><serial_number>E2B4C5C9E8</serial_number><instance_id>USB\\VID_28DE&amp;PID_2101\\E2B4C5C9E8</instance_id></item><item><device_name>Old</device_name><connected>No</connected><instance_id>USB\\X</instance_id></item></usb_devices_list>";
+            var usb = UsbMap.Devices(usbXml);
+            var pair = UsbMap.Pairings(new[] { "lighthouse: E2B4C5C9E8 now carries LHR-467E1FA2", "nothing here" }, new[] { "E2B4C5C9E8", "A745E8B994" });
+            check("usb-map: only connected devices; dongles and hubs are told apart; a dongle's tracker comes from SteamVR's log",
+                usb.Count == 1 && usb[0][2] == "E2B4C5C9E8" && UsbMap.Kind(usb[0][0], "") == "tracker-dongle" && UsbMap.Kind("USB\\ROOT_HUB30\\5", "") == "root-hub" &&
+                UsbMap.Kind("USB\\VID_05E3&PID_0610\\6", "Generic USB Hub") == "hub" && UsbMap.Kind("PCI\\VEN_1022", "") == "controller" &&
+                pair.Count == 1 && pair["E2B4C5C9E8"] == "LHR-467E1FA2" && !UsbMap.Scan(@"C:\no\USBDeview.exe", "").ContainsKey("controllers"));
             var lh = VrLaunch.Plan(new LaunchRequest { Headset = "quest-pro", Mode = "questlhsync", Streamer = "virtual-desktop", Double = "" }).Select(s => s.Id).ToList();
             check("vr-launch: x.4 QuestLHSync needs no head tracker, keeps Space Calibrator closed and opens no other overlay",
                 lh.Contains("questlhsync") && lh.IndexOf("questlhsync") > lh.IndexOf("open:steamvr") && lh.Contains("close:space-calibrator") && !lh.Contains("open:space-sync") && !lh.Contains("open:space-override") &&
@@ -1152,14 +1376,26 @@ namespace AstrasPetOs.RiftRabbit
                 check("vr-launch: only her spots, a device that fits each, each tracker once, pairs from their own part of the body",
                     set("{'spots':{'XX':'vive-tracker-01'}}") != null && set("{'spots':{'F':'vive-tracker-01'}}") != null && set("{'spots':{'RH':'index-controller-left'}}") != null &&
                     set("{'spots':{'RF':'calc.exe'}}") != null && set("{'spots':{'RF':'vive-tracker-01','LF':'vive-tracker-01'}}") != null &&
-                    set("{'spots':{},'hip':['FW','FC']}") != null && set("{'spots':{},'chest':['FC','FC']}") != null && s2.Worn.Count == 12);
+                    set("{'spots':{},'hip':['FW','FS']}") != null && set("{'spots':{},'chest':['FS','FS']}") != null && s2.Worn.Count == 12);
+                File.WriteAllText(Path.Combine(temp, LaunchSettings.FileName), Q("{'code':'" + s1.Code + "','spots':{'FC':'vive-tracker-05','BC':'vive-tracker-03'},'double_chest_spots':['FC','BC']}"));
+                var old17 = LaunchSettings.Load(temp);
+                check("vr-launch: a file from before 2026-10-26 moves Front and Back Chest to Front and Back Sternum", old17.At("FS") == "vive-tracker-05" && old17.At("BS") == "vive-tracker-03" && old17.ChestSpots.SequenceEqual(new[] { "FS", "BS" }));
+                LaunchSettings.Load(Path.Combine(temp, "fresh")).Save(temp);
+                var s3 = LaunchSettings.Load(temp);
+                bool usual = s3.AutoDouble() == "both" && s3.ChestSpots.SequenceEqual(new[] { "FS", "BS" });
+                var moved = s3.Worn.ToDictionary(kv => kv.Key, kv => (object)kv.Value); moved.Remove("FS"); moved["FD"] = "vive-tracker-05";
+                s3.SetSpots(moved, null, null);
+                check("vr-launch: the Double pairs and choice follow the spots by themselves (the front sternum tracker moved to 15 Front Diaphragm)",
+                    usual && s3.ChestSpots.SequenceEqual(new[] { "BS", "FD" }) && s3.ChestPair.Length == 2 && s3.AutoDouble() == "both" &&
+                    LaunchRequest.From(map("{'headset':'quest-pro','mode':'native','double':'auto'}"), out problem) != null);
+                check("vr-launch: a hand may hold a Quest Pro or Quest 3 controller, never the other hand's", Spots.Fits("RH", "quest-pro-controller-right") && Spots.Fits("LH", "quest-3-controller-left") && !Spots.Fits("RH", "quest-3-controller-left"));
                 check("vr-launch: hand tracking may be on both hands; any two waist spots make Double Hip",
-                    set("{'spots':{'F':'quest-3','RH':'hand-tracking','LH':'hand-tracking','RS':'vive-tracker-09','LS':'vive-tracker-04','RF':'vive-tracker-01'},'hip':['RS','LS'],'chest':['FS','BS']}") == null &&
+                    set("{'spots':{'F':'quest-3','RH':'hand-tracking','LH':'hand-tracking','RS':'vive-tracker-09','LS':'vive-tracker-04','RF':'vive-tracker-01'},'hip':['RS','LS'],'chest':['FD','BD']}") == null &&
                     s2.HipPair.SequenceEqual(new[] { "LHR-467E1FA2", "LHR-6BA0C57A" }) && s2.ChestPair.Length == 0 && s2.HeadTracker == "");
                 check("vr-launch: a launch needs its spots: the headset on Face, a head tracker for x.1 to x.3, both trackers of a pair, the object's tracker",
                     s2.Missing(new LaunchRequest { Headset = "quest-pro", Mode = "native", Double = "" }).Contains("Quest 3") &&
                     s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "space-sync", Double = "" }).Contains("24 Head [H]") &&
-                    s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "native", Double = "both" }).Contains("15 Front Sternum [FS]") &&
+                    s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "native", Double = "both" }).Contains("15 Front Diaphragm [FD]") &&
                     s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "native", Double = "hip", Object = "dance-pole" }).Contains("25 Dance Pole [DP]") &&
                     s2.Missing(new LaunchRequest { Headset = "quest-3", Mode = "native", Double = "hip", Object = "" }) == null);
                 check("vr-launch: VRChat's command line carries no list (Steam adds its launch options)", VrLaunch.VrChatArguments() == "-applaunch 438100");
@@ -1210,7 +1446,7 @@ namespace AstrasPetOs.RiftRabbit
                     string launchBody = "{" + code + Q(",'headset':'quest-pro','mode':'space-calibrator','streamer':'virtual-desktop','double':'hip','osc':true}");
                     check("vr-launch: it listens on 127.0.0.1 only", port > 0);
                     check("vr-launch: a web site is refused", Post(port, "https://example.com", "/launch", launchBody).StartsWith("HTTP/1.1 403") && made == null);
-                    string spotsBody = "{" + code + Q(",'spots':{'F':'quest-pro','RH':'index-controller-right','LH':'index-controller-left','FW':'vive-tracker-09','BW':'vive-tracker-04','FC':'vive-tracker-05','BC':'vive-tracker-03','H':'vive-tracker-08'},'hip':['FW','BW'],'chest':['FC','BC']}");
+                    string spotsBody = "{" + code + Q(",'spots':{'F':'quest-pro','RH':'index-controller-right','LH':'index-controller-left','FW':'vive-tracker-09','BW':'vive-tracker-04','FS':'vive-tracker-05','BS':'vive-tracker-03','H':'vive-tracker-08'},'hip':['FW','BW'],'chest':['FS','BS']}");
                     check("vr-launch: a web site cannot change the spots", Post(port, "https://example.com", "/spots", spotsBody).StartsWith("HTTP/1.1 403") && saved == 0);
                     string spotsOk = Post(port, "null", "/spots", spotsBody);
                     check("vr-launch: the page's spots are kept and read back", spotsOk.Contains(Q("'ok':true")) && saved == 1 && s1.At("RF") == "" && s1.HeadTracker == "LHR-6963FCE5");

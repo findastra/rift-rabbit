@@ -40,13 +40,13 @@ page cannot start programs, so each **Launch** button asks Rift Rabbit's launche
 3. The headset and the streamer on it are her side: the step waits until SteamVR sees the headset, or until she presses
    **Next**.
 4. SteamVR, then the programs SteamVR also auto-starts (she keeps that on: "fix the steam auto launch settings", so
-   the launcher finds them already open and opens any that are not): VRCFaceTracking (Quest Pro only), OVR Advanced
+   the launcher finds them already open and opens any that are not): VRCFaceTracking (Quest Pro, when its face tracking box is ticked), OVR Advanced
    Settings, OVR Dynamic Resolution, and the mode's own program: Space
    Calibrator in x.1 (closed the way its X does in the other modes), Space Override's overlay in x.2, Space Sync's in
    x.3. In x.4 QuestLHSync runs inside SteamVR; she looks at each base station once so the headset's cameras find
    them.
 5. DoubleHip DoubleChest Tracker (its Enable Hip / Enable Chest set for her choice first), Object Track VR (not out yet,
-   so its step only says so), OVR Smooth Tracking, OSCGoesBrrr, and for the Woojer vest, Voicemeeter (the vest is a
+   so its step only says so), OVR Smooth Tracking, Base Station FOV Viewer and VR Pole Overlay when ticked (their ticks also open or close them at any moment, through `/overlay`), OSCGoesBrrr, and for the Woojer vest, Voicemeeter (the vest is a
    Bluetooth audio device that Voicemeeter plays to; whether it is connected is not checked).
 6. A light for each thing **Start VRChat** waits for: the headset, the Index controllers on her hands (none for hand
    tracking), every tracker on one of her spots (24 Head only in the modes with one, an object's only when it is
@@ -60,7 +60,7 @@ from SteamVR's own log (`Steam\logs\vrserver.txt`), read only.
   from any web site, and needs the code from its settings file. It takes only the page's fixed values (headset, mode,
   streamer, Double choice, Object Track VR object, OSCGoesBrrr, Woojer vest), never a program name or a command.
 - **Its settings**, never committed: `Documents\Astra's PetOS Data\rift-rabbit\vr-launch-settings-20261024.json`: the
-  port (47621), the code, which device is on each of her 27 spots, the two Double pairs, and where DoubleHip DoubleChest
+  port (47621), the code, which device is on each of her 29 spots, the two Double pairs, and where DoubleHip DoubleChest
   Tracker is. The spots are hers (2026-10-25 drawing: 1 Right Foot [RF] to 27 Little Dance Hoop [LDH]); she sets them
   with tracker-strapper on Rift Rabbit's page opened on this PC, which sends them to `/spots`. Only her spots, only a
   device that fits each (23 Face a headset, 21 and 22 an Index controller or the headset's hand tracking, the rest a
@@ -83,6 +83,16 @@ from SteamVR's own log (`Steam\logs\vrserver.txt`), read only.
   goes to `menu-20261021.json` and its mood to `mood-20261021.json` in `%LOCALAPPDATA%\astras-pet-os\rift-rabbit`,
   with Log Den's background-pet contract.
 
+## The dongle map
+
+Astra, 2026-10-26: "Can you add USBDeview ... and then also make a tool for us to run it and show a branch where each
+dongle is? There are so many ways to plug them in, we want to optimize it". The page's **dongle map** asks the launcher
+(`/usb-map`), which runs NirSoft's [USBDeview](https://www.nirsoft.net/utils/usb_devices_view.html) 3.10 from
+`Documents\USBDeview-3.10` (downloaded 2026-10-26; its SHA-256 matches NirSoft's) to list what is plugged in, and walks
+Windows' device tree from each device up to its USB controller. The page draws them as branches: controller, root hub,
+hubs, then each Watchman dongle (one per tracker or controller), Valve VR Radio and other device, with its port. When
+SteamVR's log names a dongle and a tracker on one line, the dongle shows its tracker. Read only.
+
 ## How to run it
 
 The page: double-click `index.html`. It needs no install and no build step.
@@ -102,7 +112,7 @@ bin\rift-rabbit-20261024.exe --startup
 | `--quit` | stop the running launcher |
 | `--tool wonderland-launchpad-v1.0-vr-launch-v1.0 on\|off` | switch the launcher ON or OFF |
 | `bin\rift-rabbit-check-20261024.exe --programs` | which of her VR programs are open and which VR devices SteamVR has on |
-| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (54) |
+| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (59) |
 
 ## Next steps
 
