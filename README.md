@@ -1,16 +1,28 @@
 # Rift Rabbit
 
-*An Intelligent App, or Pet, by Astra.*
+*By Astra.* A white rabbit that preps and tracks VR software and performance: one **Launch** button sets up SteamVR,
+the trackers and every VR program in order, then starts VRChat. Part of [Astra's PetOS](https://github.com/findastra/astras-pet-os).
 
-A white rabbit that preps and tracks VR software and performance. Part of [Astra's PetOS](https://github.com/findastra/astras-pet-os).
+## Wonderland Launchpad
 
-## Pictures
+Rift Rabbit's program page: where each tracker sits, on you, on the dance hoops and on the pole, and a Launch button for
+each VRChat setup.
 
-![Rift Rabbit's program page: the L3 activity bubble (disconnected), tutorials and a notes box; the app is a placeholder](docs/images/rift-rabbit-program-page-20261017.png)
+<table>
+<tr>
+<th width="42%">Your tracker spots</th>
+<th width="58%">The hoops and the pole</th>
+</tr>
+<tr>
+<td width="42%"><img src="docs/images/rift-rabbit-tracker-spots-20261029.png" alt="Rift Rabbit's tracker strapper: two body outlines, front and back, with numbered tracker spots from head to feet, the headset and both Index controllers" width="100%"></td>
+<td width="58%"><img src="docs/images/rift-rabbit-hoops-and-pole-20261029.png" alt="Rift Rabbit's tracker strapper: the Big and Little Dance Hoops hanging from the 9 ft ceiling and the X-Pole, each with its tracker spots" width="100%"></td>
+</tr>
+</table>
 
-Rift Rabbit's program page (`index.html`) as it looks on OpenAI Codex's `codex/l3-activity-20261016` branch, which adds the L3 activity bubble, tutorials and notes and is not merged into `main` yet. The app itself is a placeholder.
+**[▶ Open Wonderland Launchpad](https://findastra.github.io/astras-pet-os/apps/pet-programs/rift-rabbit-20261018.html)**:
+on the public site the Launch buttons stay off; they work on Astra's PC while the launcher runs.
 
-Screenshots taken 2026-10-17 with GitHub Goldfish's [project-image-generator](https://github.com/findastra/github-goldfish#project-image-generator); added with Claude Opus 5.5 (`claude-opus-5-5`), 2026-10-17.
+**Needs:** Windows 10 or 11 with SteamVR and VRChat for the launcher; any browser for the page.
 
 ## Status
 
@@ -114,15 +126,26 @@ bin\rift-rabbit-20261024.exe --startup
 | `bin\rift-rabbit-check-20261024.exe --programs` | which of her VR programs are open and which VR devices SteamVR has on |
 | `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (59) |
 
-## Next steps
+## Quirks
 
-See [docs/handoff-claude-20261009.md](docs/handoff-claude-20261009.md).
+1. No VR performance tracking yet. The launcher starts her VR software; it does not measure anything.
+2. Startup Star does not start the launcher at sign-in yet; until it does, start `bin\rift-rabbit-20261024.exe`.
+3. No pixel art yet. `sprite.json` only lists the nine moods.
+4. In the hub's registry as a pipeline pet ([pets.json](https://github.com/findastra/astras-pet-os/blob/main/pets.json)): it has its own repo and is not registered yet.
 
-## Limits
+## Developer Notes
 
-- No VR performance tracking yet. The launcher starts her VR software; it does not measure anything.
-- Startup Star does not start the launcher at sign-in yet; until it does, start `bin\rift-rabbit-20261024.exe`.
-- No pixel art yet. `sprite.json` only lists the nine moods.
-- In the hub's registry as a pipeline pet ([pets.json](https://github.com/findastra/astras-pet-os/blob/main/pets.json)): it has its own repo and is not registered yet.
+1. **Next steps:** [docs/handoff-claude-20261009.md](docs/handoff-claude-20261009.md).
+2. **Pictures of the rabbit** live only in the hub (one art source): Desktop appearance draft updated 2026-10-11: see [desktop details](https://raw.githubusercontent.com/findastra/astras-pet-os/main/desktop-art/rift-rabbit/desktop-pet-20261011.json). This changes the desktop pet, not application features.
+3. **Rules:** [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md).
 
-Desktop appearance draft updated 2026-10-11: see [desktop details](https://raw.githubusercontent.com/findastra/astras-pet-os/main/desktop-art/rift-rabbit/desktop-pet-20261011.json). This changes the desktop pet, not application features.
+## Credits
+
+1. The launcher (`rift-rabbit-20261024.cs`, `vr-launch-20261024.cs`): built with Claude Opus 5.5, 2026-10-24.
+2. The desktop appearance: OpenAI Codex (GPT-6), 2026-10-11. Every change is listed in [AGENTS.md](AGENTS.md).
+3. [USBDeview](https://www.nirsoft.net/utils/usb_devices_view.html) is NirSoft's; the dongle map runs it from the PC.
+4. The pictures above are screenshots of the live program page, 2026-10-29.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
