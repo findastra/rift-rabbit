@@ -325,10 +325,41 @@ namespace AstrasPetOs.RiftRabbit
 
         public static List<VrDevice> Look(string logFile) { return Read(logFile, SteamVrRunning()); }
 
+        // Whether SteamVR has a headset on, whatever brought it: Meta's own driver names the Quest Pro by its serial, but
+        // Virtual Desktop, Steam Link and Air Link add it through their own driver with another serial (2026-11-01: a
+        // launch through Virtual Desktop waited for the Quest Pro forever). Only one headset is worn at a time.
+        public static bool HeadsetOn(string logFile) { return HeadsetOn(logFile, SteamVrRunning()); }
+
+        public static bool HeadsetOn(string logFile, bool steamVrRunning)
+        {
+            string headset;
+            var on = Scan(logFile, steamVrRunning, out headset);
+            bool v;
+            return headset != null && on.TryGetValue(headset, out v) && v;
+        }
+
         public static List<VrDevice> Read(string logFile, bool steamVrRunning)
         {
+            string headset;
+            var on = Scan(logFile, steamVrRunning, out headset);
+            return Table.Select(row =>
+            {
+                var f = row.Split('|');
+                var d = new VrDevice { Id = f[0], Name = f[1], Serial = f[2] };
+                bool v;
+                // The Quest 3's serial is not known yet: any other headset SteamVR added counts as the Quest 3.
+                d.On = d.Serial.Length > 0 ? on.TryGetValue(d.Serial, out v) && v
+                    : d.Id == "quest-3" && headset != null && !Table.Any(r => r.Split('|')[2] == headset) && on.TryGetValue(headset, out v) && v;
+                return d;
+            }).ToList();
+        }
+
+        // Each serial SteamVR added since it last started, on or dropped, and the last device a driver other than
+        // lighthouse added (the headset's driver).
+        static Dictionary<string, bool> Scan(string logFile, bool steamVrRunning, out string headset)
+        {
             var on = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-            string headset = null;
+            headset = null;
             if (steamVrRunning && File.Exists(logFile))
             {
                 using (var stream = new FileStream(logFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
@@ -347,16 +378,7 @@ namespace AstrasPetOs.RiftRabbit
                     }
                 }
             }
-            return Table.Select(row =>
-            {
-                var f = row.Split('|');
-                var d = new VrDevice { Id = f[0], Name = f[1], Serial = f[2] };
-                bool v;
-                // The Quest 3's serial is not known yet: any other headset SteamVR added counts as the Quest 3.
-                d.On = d.Serial.Length > 0 ? on.TryGetValue(d.Serial, out v) && v
-                    : d.Id == "quest-3" && headset != null && !Table.Any(r => r.Split('|')[2] == headset) && on.TryGetValue(headset, out v) && v;
-                return d;
-            }).ToList();
+            return on;
         }
     }
 
@@ -444,6 +466,13 @@ namespace AstrasPetOs.RiftRabbit
                 var dev = VrDevices.Read(logTmp, true).ToDictionary(d => d.Id, d => d.On);
                 Check("devices: the headset and the head tracker SteamVR added are on, a tracker that dropped is off", dev["quest-pro"] && dev["vive-tracker-08"] && !dev["vive-tracker-05"] && !dev["quest-3"]);
                 Check("devices: with SteamVR not running, everything is off", VrDevices.Read(logTmp, false).All(d => !d.On));
+                File.WriteAllLines(logTmp, new[] {
+                    "Sun Nov 01 2026 18:01:10.459 [Info] - Driver 'VirtualDesktop' finished adding tracked device with serial number 'VD-0123456789'",
+                    "Sun Nov 01 2026 18:01:19.191 [Info] - Driver 'lighthouse' finished adding tracked device with serial number 'LHR-6963FCE5'" });
+                Check("devices: a headset Virtual Desktop or Steam Link adds, with a serial of its own, counts as on",
+                    VrDevices.HeadsetOn(logTmp, true) && !VrDevices.HeadsetOn(logTmp, false) && !VrDevices.Read(logTmp, true).First(d => d.Id == "quest-pro").On);
+                File.AppendAllLines(logTmp, new[] { "Sun Nov 01 2026 18:30:00.000 [Info] - VR server shutting down" });
+                Check("devices: after SteamVR shuts down, no headset is on", !VrDevices.HeadsetOn(logTmp, true));
             }
             finally { try { File.Delete(logTmp); } catch (Exception) { } }
 
