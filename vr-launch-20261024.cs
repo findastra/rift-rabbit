@@ -736,7 +736,12 @@ namespace AstrasPetOs.RiftRabbit
 
         void Wait(int ms) { for (int i = 0; i < ms / 100 && !stop; i++) Thread.Sleep(100); }
 
-        static bool On(string deviceId) { return VrDevices.Look(VrDevices.LogFile()).Any(d => d.Id == deviceId && d.On); }
+        // The launch's headset is on once SteamVR has any headset, whichever streamer brought it (VrDevices.HeadsetOn).
+        static bool On(string deviceId)
+        {
+            if (LaunchRequest.Headsets.Contains(deviceId)) return VrDevices.HeadsetOn(VrDevices.LogFile());
+            return VrDevices.Look(VrDevices.LogFile()).Any(d => d.Id == deviceId && d.On);
+        }
         static bool Running(string programId) { return VrPrograms.Look(VrPrograms.Find(programId)).Running; }
 
         string Open(string id)
@@ -891,8 +896,10 @@ namespace AstrasPetOs.RiftRabbit
                         while (!stop && !go)
                         {
                             var devices = VrDevices.Look(VrDevices.LogFile());
+                            bool headsetOn = VrDevices.HeadsetOn(VrDevices.LogFile());
                             var progs = VrPrograms.Look(opened.Distinct().Select(id => VrPrograms.Find(id)));
-                            var checks = VrLaunch.NeededDevices(Request, settings).Select(d => new Dictionary<string, object> { { "id", d.Key }, { "name", d.Value }, { "on", devices.Any(x => x.Id == d.Key && x.On) } })
+                            var checks = VrLaunch.NeededDevices(Request, settings).Select(d => new Dictionary<string, object> { { "id", d.Key }, { "name", d.Value },
+                                { "on", d.Key == Request.Headset ? headsetOn : devices.Any(x => x.Id == d.Key && x.On) } })
                                 .Concat(progs.Select(p => new Dictionary<string, object> { { "id", p.Program.Id }, { "name", p.Program.Name }, { "on", p.Running } })).ToList();
                             var missing = checks.Where(c => !(bool)c["on"]).Select(c => (string)c["name"]).ToList();
                             lock (gate)
@@ -1286,6 +1293,11 @@ namespace AstrasPetOs.RiftRabbit
                 LaunchRequest.From(map("{'headset':'quest-pro','mode':'calc.exe'}"), out problem) == null &&
                 LaunchRequest.From(map("{'headset':'quest-pro','mode':'native','double':'--x'}"), out problem) == null);
 
+            // What the page's Launch buttons send (hub vrchat-launcher-20261024.js): each headset, mode and streamer, the
+            // Double choice from the spots ("auto"), face tracking and both overlays (2026-11-01: an older build refused
+            // Air Link, "auto" and the ticks, so those launches never started).
+            check("vr-launch: every launch the page can send is taken", LaunchRequest.Headsets.All(h => LaunchRequest.Modes.All(m => LaunchRequest.Streamers.All(st =>
+                LaunchRequest.From(map("{'headset':'" + h + "','mode':'" + m + "','streamer':'" + st + "','double':'auto','object':'','osc':true,'woojer':false,'face':false,'fov':true,'pole':true}"), out problem) != null))));
             var pro = new LaunchRequest { Headset = "quest-pro", Mode = "native", Streamer = "virtual-desktop", Double = "" };
             string ids = string.Join(" ", VrLaunch.Plan(pro).Select(s => s.Id));
             check("vr-launch: Astra's order on the Quest Pro", ids ==
