@@ -7,7 +7,7 @@
   "runs_on": "Windows desktop: rift-rabbit-20261024.exe, a background program with no window and no tray icon that listens on this PC only (127.0.0.1) for the Launch buttons on Rift Rabbit's page.",
   "entry": "index.html",
   "status": "hatching",
-  "cage": {
+  "hub": {
     "topic": "pet-app",
     "home": "README.md",
     "repository": "https://github.com/findastra/astras-pet-os"
