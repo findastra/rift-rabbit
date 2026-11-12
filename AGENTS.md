@@ -5,7 +5,7 @@ Rift Rabbit is a pet by Astra (repo `findastra/rift-rabbit`). It is a **hatching
 Rules for any assistant working here:
 
 - Follow the pet file rules (https://github.com/findastra/astras-pet-os/blob/main/PET-FILES.md) and the pet words (https://github.com/findastra/astras-pet-os/blob/main/PET-WORDS.md). `pet.json` must stay valid, `sprite` and `entry` must be real files, and `status` is hatching, growing or grown.
-- Work left for someone else is a card in a `handoffs/` folder. Registering this pet in the Cage is card 008 in `findastra/astras-pet-os`. Do not edit the Cage from this repo.
+- Work left for someone else is a card in a `handoffs/` folder. Registering this pet in the hub is card 008 in `findastra/astras-pet-os`. Do not edit the hub from this repo.
 - Do not add keys, `.env` files or personal data. Public credit is Astra.
 - Record the model and date of any change in `pet.json` `built_with`.
 - **Launching is Rift Rabbit's** (Astra, 2026-10-24: "Launching is done by Rift Rabbit"). The launcher

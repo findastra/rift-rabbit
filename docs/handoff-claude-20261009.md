@@ -29,7 +29,7 @@ Prepared by **Claude Opus 5.5** (`claude-opus-5-5`); the repo was started by Cla
    }
    ```
 
-   `rabbit` is not in `cage_life.kinds` yet; add `"rabbit": { "zone": "ground", "hops": true }`. Check the palette against every other pet (no two pets share one).
+   `rabbit` is not in `pet_life.kinds` yet; add `"rabbit": { "zone": "ground", "hops": true }`. Check the palette against every other pet (no two pets share one).
 2. **Generate the art.** It costs one image on Astra's OpenAI account, and the last hub handoff says credits ran out. It was not run. After the registry entry: `node scripts/generate-pets.mjs rift-rabbit`, then `npm run build`, `npm run check`, `npm test`.
 3. **Copy the frames here**: put the finished frames into this repo, fill `sprite.json`, update the README limits.
 4. **Visibility**: the repo is private. Make it public only if Astra says so (most pet repos are public).
