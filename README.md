@@ -100,7 +100,8 @@ from SteamVR's own log (`Steam\logs\vrserver.txt`), read only.
 Astra, 2026-10-26: "Can you add USBDeview ... and then also make a tool for us to run it and show a branch where each
 dongle is? There are so many ways to plug them in, we want to optimize it". The page's **dongle map** asks the launcher
 (`/usb-map`), which runs NirSoft's [USBDeview](https://www.nirsoft.net/utils/usb_devices_view.html) 3.10 from
-`Documents\USBDeview-3.10` (downloaded 2026-10-26; its SHA-256 matches NirSoft's) to list what is plugged in, and walks
+`Downloads\installers\USBDeview-3.10` (downloaded 2026-10-26; its SHA-256 matches NirSoft's; File Master's cleanup moved it
+there from Documents on 2026-11-09) to list what is plugged in, and walks
 Windows' device tree from each device up to its USB controller. The page draws them as branches: controller, root hub,
 hubs, then each Watchman dongle (one per tracker or controller), Valve VR Radio and other device, with its port. When
 SteamVR's log names a dongle and a tracker on one line, the dongle shows its tracker. Read only.
