@@ -944,12 +944,18 @@ namespace AstrasPetOs.RiftRabbit
 
     // Where each dongle is plugged in (Astra, 2026-10-26: "Can you add USBDeview ... and then also make a tool for us to run
     // it and show a branch where each dongle is? There are so many ways to plug them in, we want to optimize it").
-    // NirSoft's USBDeview (Documents\USBDeview-3.10) lists what is plugged in; Windows' own device tree gives each one's
+    // NirSoft's USBDeview (Downloads\installers\USBDeview-3.10 since File Master's cleanup of 2026-11-09, row 101; it was
+    // in Documents before) lists what is plugged in; Windows' own device tree gives each one's
     // hub, root hub and USB controller, so the page can draw them as branches. SteamVR's log says which tracker a dongle
     // carries when it has seen them together. Read only: nothing is changed.
     static class UsbMap
     {
-        public static string UsbDeview() { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "USBDeview-3.10", "USBDeview.exe"); }
+        public static string UsbDeview()
+        {
+            string moved = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "installers", "USBDeview-3.10", "USBDeview.exe");
+            string old = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "USBDeview-3.10", "USBDeview.exe");
+            return File.Exists(moved) || !File.Exists(old) ? moved : old;
+        }
 
         [System.Runtime.InteropServices.DllImport("cfgmgr32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
         static extern int CM_Locate_DevNodeW(out uint devInst, string deviceId, int flags);
@@ -1028,7 +1034,7 @@ namespace AstrasPetOs.RiftRabbit
 
         public static Dictionary<string, object> Scan(string exe, string logFolder)
         {
-            if (!File.Exists(exe)) return new Dictionary<string, object> { { "ok", false }, { "said", "USBDeview is not in Documents\\USBDeview-3.10." } };
+            if (!File.Exists(exe)) return new Dictionary<string, object> { { "ok", false }, { "said", "USBDeview is not in Downloads\\installers\\USBDeview-3.10." } };
             string xmlFile = Path.Combine(Path.GetTempPath(), "rift-rabbit-usb-" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".xml");
             try
             {
