@@ -26,6 +26,10 @@ namespace AstrasPetOs.RiftRabbit
     {
         public const string Program = "rift-rabbit";
         public const string Pet = "Rift Rabbit";
+        // Its own server (Astra, 2026-11-20: "every pet gets its own server ... named after their pet program, and then
+        // dash server dash the date it was updated"; Flash Audit A72): the launcher is Wonderland Launchpad's server. It
+        // was rift-rabbit-20261024.exe. The console copy for checks keeps its name: it is not a server.
+        public const string ServerExe = "wonderland-launchpad-server-20261121.exe";
         public const string Version = "0.1.0";
         public static readonly string[] Tools = { VrLaunch.Tool };
 
@@ -70,7 +74,8 @@ namespace AstrasPetOs.RiftRabbit
             return 0;
         }
 
-        const string Usage = "rift-rabbit-20261024.exe          keep Rift Rabbit's launcher listening (no window, no tray icon; its menu\n" +
+        public const string Usage = ServerExe + "\n" +
+            "                                  keep Rift Rabbit's launcher listening (no window, no tray icon; its menu\n" +
             "                                  is in Startup Star's menu under Rift Rabbit); --startup and --watch do the same\n" +
             "  --quit                          stop the running launcher\n" +
             "  --tool <label> on|off           switch a tool ON or OFF\n" +
@@ -492,6 +497,12 @@ namespace AstrasPetOs.RiftRabbit
             finally { try { Directory.Delete(temp, true); } catch (Exception) { } }
             Check("data: the launcher's files are in Documents, Astra's PetOS Data, rift-rabbit", Rabbit.DocumentsFolder().EndsWith(Path.Combine("Astra's PetOS Data", "rift-rabbit")) &&
                 VrLaunch.PageDataFile().StartsWith(Rabbit.DocumentsFolder()));
+            // Its own server (Flash Audit A72, 2026-11-20): named after its pet program, built and installed beside this copy.
+            Check("server: named after its pet program (Wonderland Launchpad), then -server- and the date",
+                Regex.IsMatch(Rabbit.ServerExe, "^wonderland-launchpad-server-[0-9]{8}\\.exe$"));
+            Check("server: built beside the check program",
+                File.Exists(Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), Rabbit.ServerExe)));
+            Check("server: its usage starts with its name", Rabbit.Usage.StartsWith(Rabbit.ServerExe + "\n"));
 
             VrLaunchSelfTest.Run(Check);
 
