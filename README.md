@@ -35,8 +35,9 @@ Astra, 2026-10-24: "Maybe i need to turn off all of the launch dependencies so t
 "Launching is done by Rift Rabbit". Rift Rabbit's pet program page (in the hub, `apps/pet-programs/rift-rabbit-20261018.html`)
 shows her VRChat setups: two headsets, five modes each (1.0 to 1.4 on the Quest Pro, 2.0 to 2.4 on the Quest 3; x.4 is
 QuestLHSync, for a headset rooted with Magisk: its cameras see the base stations, so no tracker rides on it). A web
-page cannot start programs, so each **Launch** button asks Rift Rabbit's launcher, `rift-rabbit-20261024.exe`
-(`wonderland-launchpad-v1.0-vr-launch-v1.0`), and the launcher does it in her order:
+page cannot start programs, so each **Launch** button asks Rift Rabbit's launcher, Wonderland Launchpad's server
+`wonderland-launchpad-server-20261121.exe` (`wonderland-launchpad-v1.0-vr-launch-v1.0`; it was `rift-rabbit-20261024.exe`
+until 2026-11-21), and the launcher does it in her order:
 
 0. VRChat's launch options in Steam (Properties > General > Launch Options) get this launch's `--ignore-trackers=` list
    (Astra, 2026-10-25: "the codes here go into the steam vrchat launch properties entry here, that is what this process
@@ -116,21 +117,34 @@ compiler that ships with Windows:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File build-rift-rabbit-20261024.ps1
-bin\rift-rabbit-20261024.exe --startup
+bin\wonderland-launchpad-server-20261121.exe --startup
 ```
+
+The build writes two copies of one program:
+
+| Program | What it is |
+|---|---|
+| `bin\wonderland-launchpad-server-20261121.exe` | Wonderland Launchpad's server: the launcher, no window and no tray icon. Startup Star starts it at sign-in. It was `rift-rabbit-20261024.exe` until 2026-11-21 (Flash Audit A72: every pet's server is named after its pet program, then `-server-` and the date). |
+| `bin\rift-rabbit-check-20261024.exe` | the same program with a console, for `--self-test` and `--programs` |
+
+Startup Star runs the launcher from `Documents\Astra's PetOS Data\rift-rabbit\program`, not from `bin`, and reads its
+name from `server` in Rift Rabbit's entry in the hub's `pets.json`. To install a new build there: quit the launcher
+(`--quit`), move the old copies into a `before-YYYYMMDD` folder beside them, copy both programs in, and start it again
+from Startup Star.
 
 | Command | What it does |
 |---|---|
-| `bin\rift-rabbit-20261024.exe` (`--startup`, `--watch`) | keep the launcher listening; a second copy exits quietly |
+| `bin\wonderland-launchpad-server-20261121.exe` (`--startup`, `--watch`) | keep the launcher listening; a second copy exits quietly |
 | `--quit` | stop the running launcher |
 | `--tool wonderland-launchpad-v1.0-vr-launch-v1.0 on\|off` | switch the launcher ON or OFF |
 | `bin\rift-rabbit-check-20261024.exe --programs` | which of her VR programs are open and which VR devices SteamVR has on |
-| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (59) |
+| `bin\rift-rabbit-check-20261024.exe --self-test` | the built-in checks (65) |
 
 ## Quirks
 
 1. No VR performance tracking yet. The launcher starts her VR software; it does not measure anything.
-2. Startup Star does not start the launcher at sign-in yet; until it does, start `bin\rift-rabbit-20261024.exe`.
+2. Startup Star starts the launcher at sign-in (since 2026-11-01). With it stopped, every Launch button says the
+   launcher is not answering: start it from Startup Star's menu (Rift Rabbit, then Start Rift Rabbit).
 3. No pixel art yet. `sprite.json` only lists the nine moods.
 4. In the hub's registry as a pipeline pet ([pets.json](https://github.com/findastra/astras-pet-os/blob/main/pets.json)): it has its own repo and is not registered yet.
 
